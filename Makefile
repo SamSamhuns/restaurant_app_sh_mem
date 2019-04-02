@@ -6,7 +6,7 @@ CC = gcc# C compiler
 # CC = g++# C++ compiler
 LDFLAGS= # Compiler flags i.e. -lm
 CFLAGS = -std=c99 -Wall -Wshadow -Werror -I$(IDIR)# C compiler flags
-# CFLAGS = -Wall -Wshadow -Werror# C++ compiler flags
+# CFLAGS = -Wall -Wshadow -Werror -I$(IDIR)# C++ compiler flags
 
 # Getting the list of header files
 HEADERS = $(wildcard $(IDIR)/*.h)
@@ -37,10 +37,13 @@ cashier: $(SDIR)/cashier.c $(SDIR)/common.c $(IDIR)/common.h $(ODIR)/cashier.o $
 # Any file with the name clean will not interrupt the cmd clean
 .PHONY: clean clean-obj clean-build
 
-clean: clean-obj clean-build
+clean: clean-obj clean-build clean-mac-fsys
 
 clean-obj:
-	rm -rf $(ODIR) *.DS_Store
+	rm -rf $(ODIR)
+
+clean-mac-fsys:
+	rm -rf *.DS_Store
 
 clean-build:
 	rm -rf $(BDIR)
