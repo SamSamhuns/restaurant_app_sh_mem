@@ -1,0 +1,21 @@
+ItemID,Description,Price,Min Time (seconds),Max Time (seconds)
+1,BBQ-Chicken-Salad,8.95,18,24
+2,Spinach-Power,9.15,12,16
+3,Garden-Salad,4.75,10,13
+4,Steak-Blue-Cheese,7.25,12,15
+5,Ceasars-Salad,6.75,13,15
+6,Chicken-Salad,9.15,15,21
+7,Mongolian-BBQ-Plate,9.75,21,31
+8,Club-Sandwich,6.35,13,18
+9,Belgian-Cheese-Sub,10.25,15,19
+10,Rio-Grande-Beef-Sub,9.35,18,20
+11,Argentine-Asado-Club,11.75,23,30
+12,Sierra-Sub,10.38,12,15
+13,Avocado-BLT,8.05,12,13
+14,Soup-de-Egion,3.20,11,15
+15,Soup-de-Sur,2.75,6,9
+16,Coffee,1.25,2,4
+17,Hot-Tea,1.05,1,4
+18,Hot-Chocolate,2.15,1,2
+19,Mocha,3.25,2,3
+20,Cafe-Late,3.75,5,7
