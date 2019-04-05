@@ -20,7 +20,24 @@ int main(int argc, char const *argv[]){
 		        "Incorrect args supplied. Usage: ./client -i itemId(number) -e eatTime(number) -m shmid(number)\n");
 		return 1;
 	}
-	printf("i is %li, sh is %li, et is %li\n",itemId, shmid, eatTime );
+	printf("DEBUG i is %li, sh is %li, et is %li\n",itemId, shmid, eatTime );
+
+
+	/*TODO*/
+	// get shmid and access it
+	// check cur_n_clients_wait_cashier against MaxPeople if not exit
+	//
+	// Add itself to the cashier_service_queue
+	// deal with cashier in [1....cashier->serviceTime] save time stats in shm
+	//
+	// Add itself to the server_service_queue
+	// deal/get food from server in [min_serv_time....max_serv_time] save time stats in shm
+	// eat for [1....eatTime] save time stats in shm
+	//
+	// deal with semaphores P() and V() funcs
+	// save its client_ID, item and price info in shm
+	// log all time spent with cashier, server and eating in shm
+	// exit
 
 
 	return 0;

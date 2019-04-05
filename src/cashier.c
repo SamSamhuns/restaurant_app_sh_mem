@@ -6,19 +6,31 @@
 #include "common.h"
 
 /* cmd args validation
-	./cashier -s serviceTime -b breakTime -m shmid	*/
+    ./cashier -s serviceTime -b breakTime -m shmid	*/
 int cmd_validate(int argc, char const *argv[], long *serviceTime, long *shmid, long *breakTime);
 
 int main(int argc, char const *argv[]) {
 	long serviceTime, shmid, breakTime;
 	/* cmd args validation
-		./cashier -s serviceTime -m shmid -b breakTime */
+	    ./cashier -s serviceTime -m shmid -b breakTime */
 	if (cmd_validate(argc, argv, &serviceTime, &shmid, &breakTime) == 1) {
 		fprintf(stderr,
-				"Incorrect args supplied. Usage: ./cashier -s serviceTime(number) -b breakTime(number) -m shmid(number)\n");
+		        "Incorrect args supplied. Usage: ./cashier -s serviceTime(number) -b breakTime(number) -m shmid(number)\n");
 		return 1;
 	}
-	printf("s is %li, m is %li, b is %li\n",serviceTime, shmid, breakTime);
+	printf("DEBUG s is %li, m is %li, b is %li\n",serviceTime, shmid, breakTime);
+
+	/*TODO*/
+	// get shmid and access it
+	// check cur_n_cashiers against MaxNumOfCashiers if not exit
+	// deal with client in [1....serviceTime]
+	//
+	// if no client currently waiting (cur_n_clients_wait_cashier = 0)
+	//  go to break for [1....breakTime]
+	//  and come back to check for clients waiting
+	//      if no client then go for break again
+	// deal with semaphores P() and V() funcs
+	// exit
 
 	return 0;
 }
