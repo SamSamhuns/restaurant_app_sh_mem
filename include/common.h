@@ -6,11 +6,11 @@
 /* struct representing each menu item as Item
     an array can be created using struct Item menuItemList[num_of_items] */
 typedef struct Item {
-    int menu_itemId;
-    char menu_desc[MAX_ITEM_DESC_LEN];
-    int menu_price;
-    int menu_min_time;
-    int menu_max_time;
+	int menu_itemId;
+	char menu_desc[MAX_ITEM_DESC_LEN];
+	int menu_price;
+	int menu_min_time;
+	int menu_max_time;
 } Item;
 
 /* Checks if the string str is all digits

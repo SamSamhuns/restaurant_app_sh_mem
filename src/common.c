@@ -1,6 +1,6 @@
 /*  Author: Samridha Shrestha
     2019, April 2
-*/
+ */
 #include <ctype.h>
 #include <stdio.h>
 #include "common.h"
