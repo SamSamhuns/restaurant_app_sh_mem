@@ -1,20 +1,45 @@
 #ifndef COMMON_H // Making sure the header files are not included twice
 #define COMMON_H
 
-#define MAX_ITEM_DESC_LEN 125
+#define MAX_ITEM_DESC_LEN 125 // max len of menu items
+#define DEBUG 1 // Debug Mode
+#define MAX_SHM_SIZE 4096 // max size of shared memory in bytes
+
+/* Boilerplate code for uniform error checking
+  Example.  if(pipe(fd_pipe) == -1){
+            	perror("could not pipe");
+            	exit(1);
+            }
+  SHortened to:
+            TRY_AND_CATCH(pipe(fd_pipe), "pipe");
+*/
+#define TRY_AND_CATCH(exp, err_cmd) do { \
+    if ((exp < 0) || (exp == NULL)) { \
+        perror(err_cmd); \
+        exit(1);   \
+    } \
+} while (0)
 
 /* struct representing each menu item as Item
     an array can be created using struct Item menuItemList[num_of_items] */
 typedef struct Item {
-	int menu_itemId;
+	long menu_itemId;
 	char menu_desc[MAX_ITEM_DESC_LEN];
-	int menu_price;
-	int menu_min_time;
-	int menu_max_time;
+	long menu_price;
+	long menu_min_time;
+	long menu_max_time;
 } Item;
 
 /* Checks if the string str is all digits
     returns 0 for True (str is all digits) and 1 for False (Not a number) */
 int isdigit_all (const char *str, int str_len);
+
+/* function that returns the total number of items in menu to create
+	menu struct array*/
+int num_menu_items(FILE *fptr);
+
+/* function that parses the menu item file and loads each item
+	with id, name, price with min and max time for waiting */
+void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]);
 
 #endif
