@@ -51,8 +51,11 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# executables in /bin folder
-/bin
+# executables
+server
+client
+cashier
+coordinator
 
 # history txt file
 history.txt
