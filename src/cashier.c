@@ -1,8 +1,15 @@
 #include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
-#include <sys/types.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/types.h>
+#include <semaphore.h>
 #include "common.h"
 
 /* cmd args validation
@@ -15,7 +22,7 @@ int main(int argc, char const *argv[]) {
 	    ./cashier -s serviceTime -m shmid -b breakTime */
 	if (cmd_validate(argc, argv, &serviceTime, &shmid, &breakTime) == 1) {
 		fprintf(stderr,
-		        "Incorrect args supplied. Usage: ./cashier -s serviceTime(number) -b breakTime(number) -m shmid(number)\n");
+		        "Incorrect args supplied. Usage: ./cashier -s serviceTime -b breakTime -m shmid\n");
 		return 1;
 	}
 	printf("DEBUG s is %li, m is %li, b is %li\n",serviceTime, shmid, breakTime);
@@ -31,6 +38,32 @@ int main(int argc, char const *argv[]) {
 	//      if no client then go for break again
 	// deal with semaphores P() and V() funcs
 	// exit
+
+
+
+	/* name of the shared memory object */
+	const char* name = "OS";
+
+	/* shared memory file descriptor */
+	int shm_fd;
+
+	/* pointer to shared memory object */
+	void* ptr;
+
+	/* open the shared memory object */
+	shm_fd = shm_open(name, O_RDONLY, 0666);
+
+	/* memory map the shared memory object */
+	ptr = mmap(0, MAX_SHM_SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);
+
+	/* read from the shared memory object */
+	printf("%s", (char*)ptr);
+
+	/* remove the shared memory object */
+	munmap(ptr, MAX_SHM_SIZE);
+	close(shm_fd);
+	shm_unlink(name);
+
 
 	return 0;
 }
