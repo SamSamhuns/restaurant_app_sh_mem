@@ -1,7 +1,6 @@
 IDIR =include# directory for header files
 SDIR =src# source directory
 ODIR =obj# object file directory
-BDIR =bin# bin exec file directory
 CC = gcc# C compiler
 # CC = g++# C++ compiler
 LDFLAGS= # Compiler flags i.e. -lm
@@ -19,20 +18,16 @@ $(ODIR)/%.o: $(SDIR)/%.c $(HEADERS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 server: $(SDIR)/server.c $(SDIR)/common.c $(IDIR)/common.h $(ODIR)/server.o $(ODIR)/common.o
-	@mkdir -p $(BDIR)
-	$(CC) -o $(BDIR)/$@ $(ODIR)/server.o $(ODIR)/common.o $(CFLAGS)
+	$(CC) -o $@ $(ODIR)/server.o $(ODIR)/common.o $(CFLAGS)
 
 client: $(SDIR)/client.c $(SDIR)/common.c $(IDIR)/common.h $(ODIR)/client.o $(ODIR)/common.o
-	@mkdir -p $(BDIR)
-	$(CC) -o $(BDIR)/$@ $(ODIR)/client.o $(ODIR)/common.o $(CFLAGS)
+	$(CC) -o $@ $(ODIR)/client.o $(ODIR)/common.o $(CFLAGS)
 
 coordinator: $(SDIR)/coordinator.c $(SDIR)/common.c $(IDIR)/common.h $(ODIR)/coordinator.o $(ODIR)/common.o
-	@mkdir -p $(BDIR)
-	$(CC) -o $(BDIR)/$@ $(ODIR)/coordinator.o $(ODIR)/common.o $(CFLAGS)
+	$(CC) -o $@ $(ODIR)/coordinator.o $(ODIR)/common.o $(CFLAGS)
 
 cashier: $(SDIR)/cashier.c $(SDIR)/common.c $(IDIR)/common.h $(ODIR)/cashier.o $(ODIR)/common.o
-	@mkdir -p $(BDIR)
-	$(CC) -o $(BDIR)/$@ $(ODIR)/cashier.o $(ODIR)/common.o $(CFLAGS)
+	$(CC) -o $@ $(ODIR)/cashier.o $(ODIR)/common.o $(CFLAGS)
 
 # Any file with the name clean will not interrupt the cmd clean
 .PHONY: clean clean-obj clean-build
@@ -46,4 +41,4 @@ clean-mac-fsys:
 	rm -rf *.DS_Store
 
 clean-build:
-	rm -rf $(BDIR)
+	rm -rf server client coordinator cashier
