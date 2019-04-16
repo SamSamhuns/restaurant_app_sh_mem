@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]){
 	    ./client -i itemId -e eatTime -m shmid	*/
 	if (cmd_validate(argc, argv, &itemId, &shmid, &eatTime) == 1) {
 		fprintf(stderr,
-		        "Incorrect args supplied. Usage: ./client -i itemId(number) -e eatTime(number) -m shmid(number)\n");
+		        "Incorrect args supplied. Usage: ./client -i itemId -e eatTime -m shmid\n");
 		return 1;
 	}
 	printf("DEBUG i is %li, sh is %li, et is %li\n",itemId, shmid, eatTime );
