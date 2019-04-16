@@ -15,7 +15,7 @@ Only one `coordinator` and `server` should be invoked. However, multiple number 
 **Inside the `bin` folder run the following sequencially.**
 
 ```shell
-$ ./coordinator -n MaxNumOfCashiers -p MaxPeople
+$ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
 $ ./server -m shmid
 $ ./cashier -s serviceTime -b breakTime -m shmid
 $ ./client -i itemId -e eatTime -m shmid
@@ -32,15 +32,17 @@ $ make clean
 
 **1)  Coordinator**
 
-When the `coordinator` is invoked with the following command. It creates a shared segment of memory with id `shmid` and unnamed semaphores under the POSIX standards. The other players/processes access this same sahred memory.
+When the `coordinator` is invoked with the following command. It creates a shared segment of memory with id `shmid` and unnamed semaphores under the POSIX standards. The other players/processes access this same shared memory.
 
 ```shell
-$ ./coordinator -n MaxNumOfCashiers -p MaxPeople
+$ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
 ```
 
 -  `MaxNumOfCashiers` is the maximum number of cashiers that can be operating and invoked after the coordinator begins operation for the restaurant app.
 
 -  `MaxPeople` is the maximum number of clients that can be waiting in the `FIFO` queue to be handled by `cashiers`. If more clients attempt to join, they will not join the client queue (process queue).
+
+-  `MaxTimeWait` is the maximum time that the restaurant waits before closing the shop given that no new clients have entered and all current clients have left the restaurant.
 
 **2)  Server**
 
