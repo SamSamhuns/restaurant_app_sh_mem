@@ -4,7 +4,7 @@ ODIR =obj# object file directory
 CC = gcc# C compiler
 # CC = g++# C++ compiler
 LDFLAGS= # Compiler flags i.e. -lm
-CFLAGS = -std=c99 -Wall -Wshadow -Werror -I$(IDIR)# C compiler flags
+CFLAGS = -std=c99 -Wall -Wshadow -Werror -I$(IDIR) -lrt -D_XOPEN_SOURCE=500# C compiler flags
 # CFLAGS = -Wall -Wshadow -Werror -I$(IDIR)# C++ compiler flags
 
 # Getting the list of header files
