@@ -27,6 +27,23 @@ int main(int argc, char const *argv[]) {
 	}
 	// printf("DEBUG mc is %li, mp is %li and mt is %li\n", MaxCashiers, MaxPeople, MaxTimeWait);
 
+	/* loading the menu items from the txt file into a menu_items struct*/
+	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
+	TRY_AND_CATCH(menu_file, "fopen_error");
+
+	// Create a Item struct array to hold each item from diner menu
+	struct Item menu_items[num_menu_items(menu_file)];
+	load_item_struct_arr(menu_file, menu_items);
+	fclose(menu_file);
+	// if (DEBUG) {
+	// 	int temp_num = 15;
+	// 	printf("%li %s %li %li %li\n", menu_items[temp_num].menu_itemId,
+	// 	       menu_items[temp_num].menu_desc, menu_items[temp_num].menu_price,
+	// 	       menu_items[temp_num].menu_min_time, menu_items[temp_num].menu_max_time
+	// 	       );
+	// }
+
+
 
 	/* name of the shared memory object */
 	const char* name = "OS";

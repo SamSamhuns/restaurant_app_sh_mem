@@ -20,8 +20,16 @@ int main(int argc, char const *argv[]){
 		        "Incorrect args supplied. Usage: ./client -i itemId -e eatTime -m shmid\n");
 		return 1;
 	}
-	printf("DEBUG i is %li, sh is %li, et is %li\n",itemId, shmid, eatTime );
+	// printf("DEBUG i is %li, sh is %li, et is %li\n",itemId, shmid, eatTime );
 
+	/* loading the menu items from the txt file into a menu_items struct*/
+	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
+	TRY_AND_CATCH(menu_file, "fopen_error");
+
+	// Create a Item struct array to hold each item from diner menu
+	struct Item menu_items[num_menu_items(menu_file)];
+	load_item_struct_arr(menu_file, menu_items);
+	fclose(menu_file);
 
 	/*TODO*/
 	// get shmid and access it
