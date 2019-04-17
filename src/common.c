@@ -33,6 +33,10 @@ int num_menu_items(FILE *fptr) {
 /* function that parses the menu item file and loads each item
 	with id, name, price with min and max time for waiting */
 void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]) {
+	/* read the header to prevent re-reading it*/
+	char temp_hdr[MAX_ITEM_DESC_LEN];
+	fgets(temp_hdr, MAX_ITEM_DESC_LEN, menu_file);
+
 	char temp_loop_holder[MAX_ITEM_DESC_LEN];
 	int menu_iter=0;
 	while (fgets(temp_loop_holder, MAX_ITEM_DESC_LEN, menu_file)) {
