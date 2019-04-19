@@ -1,8 +1,15 @@
 #include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
-#include <sys/types.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/types.h>
+#include <semaphore.h>
 #include "common.h"
 
 int main(int argc, char const *argv[]) {
@@ -13,17 +20,40 @@ int main(int argc, char const *argv[]) {
 		        "Incorrect args supplied. Usage: ./server -m shmid\n");
 		return 1;
 	}
-	long shmid;
-	shmid = strtol(argv[2], NULL, 10);
+
 	// if (DEBUG == 1) printf("DEBUG Long is %li \n", shmid);
 
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
-	TRY_AND_CATCH(menu_file, "fopen_error");
+	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
 
 	// Create a Item struct array to hold each item from diner menu
 	struct Item menu_items[num_menu_items(menu_file)];
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
+
+	/* shared memory file descriptor */
+	int shm_fd;
+
+	/* pointer to shared memory object */
+	void* ptr;
+
+	/* open the shared memory object */
+	shm_fd = shm_open(argv[2], O_RDONLY, 0666);
+	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
+
+	/* memory map the shared memory object */
+	ptr = mmap(0, MAX_SHM_SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);
+
+	/* read from the shared memory object */
+	printf("%s", (char*)ptr);
+
+	/* remove the shared memory object */
+	munmap(ptr, MAX_SHM_SIZE);
+	close(shm_fd);
+	/* Server should not delete the shared mem object
+		shm_unlink(shmid);*/
+
+
 
 	/*TODO*/
 	// get shmid and access it

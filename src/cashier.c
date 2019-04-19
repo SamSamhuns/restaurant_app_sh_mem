@@ -14,22 +14,23 @@
 
 /* cmd args validation
     ./cashier -s serviceTime -b breakTime -m shmid	*/
-int cmd_validate(int argc, char const *argv[], long *serviceTime, long *shmid, long *breakTime);
+int cmd_validate(int argc, char const *argv[], long *serviceTime, char *shmid, long *breakTime);
 
 int main(int argc, char const *argv[]) {
-	long serviceTime, shmid, breakTime;
+	long serviceTime, breakTime;
+	char shmid[MAX_SHMID_LEN];
 	/* cmd args validation
 	    ./cashier -s serviceTime -m shmid -b breakTime */
-	if (cmd_validate(argc, argv, &serviceTime, &shmid, &breakTime) == 1) {
+	if (cmd_validate(argc, argv, &serviceTime, shmid, &breakTime) == 1) {
 		fprintf(stderr,
 		        "Incorrect args supplied. Usage: ./cashier -s serviceTime -b breakTime -m shmid\n");
 		return 1;
 	}
-	// printf("DEBUG s is %li, m is %li, b is %li\n",serviceTime, shmid, breakTime);
+	printf("DEBUG s is %li, m is %s, b is %li\n",serviceTime, shmid, breakTime);
 
 	/* loading the menu items from the txt file into a menu_items struct*/
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
-	TRY_AND_CATCH(menu_file, "fopen_error");
+	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
 
 	// Create a Item struct array to hold each item from diner menu
 	struct Item menu_items[num_menu_items(menu_file)];
@@ -50,9 +51,6 @@ int main(int argc, char const *argv[]) {
 
 
 
-	/* name of the shared memory object */
-	const char* name = "OS";
-
 	/* shared memory file descriptor */
 	int shm_fd;
 
@@ -60,7 +58,8 @@ int main(int argc, char const *argv[]) {
 	void* ptr;
 
 	/* open the shared memory object */
-	shm_fd = shm_open(name, O_RDONLY, 0666);
+	shm_fd = shm_open(shmid, O_RDONLY, 0666);
+	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* memory map the shared memory object */
 	ptr = mmap(0, MAX_SHM_SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);
@@ -71,14 +70,15 @@ int main(int argc, char const *argv[]) {
 	/* remove the shared memory object */
 	munmap(ptr, MAX_SHM_SIZE);
 	close(shm_fd);
-	shm_unlink(name);
+	/* Cashiers should not delete the shared mem object
+		shm_unlink(shmid);*/
 
 
 	return 0;
 }
 
 /* function for validating the cmd line args input */
-int cmd_validate(int argc, char const *argv[], long *serviceTime, long *shmid, long *breakTime) {
+int cmd_validate(int argc, char const *argv[], long *serviceTime, char *shmid, long *breakTime) {
 	int serviceTime_found = 0;
 	int shmid_found = 0;
 	int breakTime_found = 0;
@@ -107,7 +107,7 @@ int cmd_validate(int argc, char const *argv[], long *serviceTime, long *shmid, l
 				return 1;
 			}
 			shmid_found += 1;
-			*shmid = strtol(argv[i+1], NULL, 10);
+			strcpy(shmid, argv[i+1]);
 		}
 	}
 	if (serviceTime_found == 1 && shmid_found == 1 && breakTime_found == 1) {
