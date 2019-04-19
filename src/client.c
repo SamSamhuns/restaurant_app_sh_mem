@@ -27,7 +27,7 @@ int main(int argc, char const *argv[]){
 		        "Incorrect args supplied. Usage: ./client -i itemId -e eatTime -m shmid\n");
 		return 1;
 	}
-	printf("DEBUG i is %li, sh is %s, et is %li\n",itemId, shmid, eatTime );
+	// printf("DEBUG i is %li, sh is %s, et is %li\n",itemId, shmid, eatTime );
 
 	/* loading the menu items from the txt file into a menu_items struct*/
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
@@ -37,6 +37,11 @@ int main(int argc, char const *argv[]){
 	struct Item menu_items[num_menu_items(menu_file)];
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
+
+	sem_t *clientQS = sem_open(CLIENTQ_SEM, 0); /* open existing clientQS semaphore */
+	TRY_AND_CATCH_SEM(clientQS, "sem_open()");
+	sem_t *cashierS = sem_open(CASHIER_SEM, 0); /* open existing cashierS semaphore */
+	TRY_AND_CATCH_SEM(cashierS, "sem_open()");
 
 	/* shared memory file descriptor */
 	int shm_fd;
@@ -49,16 +54,24 @@ int main(int argc, char const *argv[]){
 	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* memory map the shared memory object */
-	ptr = mmap(0, MAX_SHM_SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);
+	ptr = mmap(0, sizeof(shared_memory_struct),
+	           PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
+	int cc;
+	printf("Scanning an int for syn\n");
+	scanf("%d",&cc);
 	/* read from the shared memory object */
 	printf("%s", (char*)ptr);
+
+	/* close the named semaphores */
+	sem_close(clientQS);
+	sem_close(cashierS);
 
 	/* remove the shared memory object */
 	munmap(ptr, MAX_SHM_SIZE);
 	close(shm_fd);
 	/* Cashiers should not delete the shared mem object
-		shm_unlink(shmid);*/
+	    shm_unlink(shmid);*/
 
 	/*TODO*/
 	// get shmid and access it
