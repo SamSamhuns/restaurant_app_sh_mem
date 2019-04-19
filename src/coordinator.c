@@ -12,9 +12,6 @@
 #include <semaphore.h>
 #include "common.h"
 
-sem_t cashierS;
-sem_t clientQS;
-
 /* function for validating the cmd line args input */
 int cmd_validate(int argc, char const *argv[], long *MaxCashiers, long *MaxPeople, long *MaxTimeWait);
 
@@ -30,11 +27,6 @@ int main(int argc, char const *argv[]) {
 	}
 	// printf("DEBUG mc is %li, mp is %li and mt is %li\n", MaxCashiers, MaxPeople, MaxTimeWait);
 
-	/*Creating a shared memory struct*/
-	typedef struct shared_memory_struct {
-		;
-	} shared_memory_struct;
-
 	/* loading the menu items from the txt file into a menu_items struct*/
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
 	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
@@ -44,30 +36,25 @@ int main(int argc, char const *argv[]) {
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
 	// if (DEBUG) {
-	// 	int temp_num = 15;
-	// 	printf("%li %s %li %li %li\n", menu_items[temp_num].menu_itemId,
-	// 	       menu_items[temp_num].menu_desc, menu_items[temp_num].menu_price,
-	// 	       menu_items[temp_num].menu_min_time, menu_items[temp_num].menu_max_time
-	// 	       );
+	//  int temp_num = 15;
+	//  printf("%li %s %li %li %li\n", menu_items[temp_num].menu_itemId,
+	//         menu_items[temp_num].menu_desc, menu_items[temp_num].menu_price,
+	//         menu_items[temp_num].menu_min_time, menu_items[temp_num].menu_max_time
+	//         );
 	// }
-	sem_init(&cashierS, 1, 0);
-	sem_init(&clientQS, 1, 0);
 
+	/* shared memory file descriptor */
+	int shm_fd;
+	struct shared_memory_struct *shared_mem_ptr;
 
+	sem_t *cashierS = sem_open(CASHIER_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init cashierS semaphore to 0*/
+	TRY_AND_CATCH_SEM(cashierS, "sem_open()");
+	sem_t *clientQS = sem_open(CLIENTQ_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init clientQS sempaphore to 0*/
+	TRY_AND_CATCH_SEM(clientQS, "sem_open()");
 
 	/* name of the shared memory object / shmid */
 	const char* shmid = "0001";
 	fprintf(stdout, "Shared mem restaurant id is %s\n", shmid);
-
-	/* strings written to shared memory */
-	const char* message_0 = "Hello";
-	const char* message_1 = "World!\n";
-
-	/* shared memory file descriptor */
-	int shm_fd;
-
-	/* pointer to shared memory obect */
-	void* ptr;
 
 	/* create the shared memory object O_EXCL flag gives error if a shared memory
 	    with the given name already exists */
@@ -75,53 +62,51 @@ int main(int argc, char const *argv[]) {
 	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* configure the size of the shared memory object */
-	ftruncate(shm_fd, MAX_SHM_SIZE);
+	if (ftruncate(shm_fd, sizeof(shared_memory_struct)) == -1 )
+	{
+		perror("ftruncate");
+		exit(1);
+	}
+	printf("%zi\n",sizeof(shared_memory_struct) );
 
 	/* memory map the shared memory object */
-	ptr = mmap(0, MAX_SHM_SIZE, PROT_WRITE, MAP_SHARED, shm_fd, 0);
+	if ((shared_mem_ptr = mmap(0, sizeof(shared_memory_struct),
+	                          PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
+		perror("mmap");
+		exit(1);
+	};
 
 	/* write to the shared memory object */
-	sprintf(ptr, "%s", message_0);
-	ptr += strlen(message_0);
-	sprintf(ptr, "%s", message_1);
-	ptr += strlen(message_1);
+	shared_mem_ptr->MaxCashiers = MaxCashiers;
+	shared_mem_ptr->MaxPeople = MaxPeople;
+
+	// sprintf(ptr, "%s", message_0);
+	// ptr += strlen(message_0);
+	// sprintf(ptr, "%s", message_1);
+	// ptr += strlen(message_1);
 
 	int cc;
 	printf("Scanning an int for syn\n");
 	scanf("%d",&cc);
 
-	sem_destroy(clientQS);
-	sem_destroy(cashierS);
 
-	munmap(ptr, MAX_SHM_SIZE);
-	close(shm_fd);
+	/*EXIT CLEAN UP*/
+	/* close the named semaphores */
+	sem_close(cashierS);
+	sem_close(clientQS);
+	/* remove the named semaphores
+	    IMPORTANT only coordinator should call this
+	    at the end */
+	sem_unlink(CASHIER_SEM);
+	sem_unlink(CLIENTQ_SEM);
+
+	munmap(shared_mem_ptr, MAX_SHM_SIZE);  /* unmap the shared mem object */
+	close(shm_fd);  /* close the file descrp from shm_open */
+	/* remove the shared mem object
+	    IMPORTANT only coordinator should call this
+	    at the end */
 	shm_unlink(shmid);
 
-
-	/*TODO*/
-	// initiate shared memory segment (shm)
-	// initiate named semaphores
-	//
-	// init cur_n_cashiers // must be less than MaxNumOfCashiers
-	// init cur_n_clients_wait_cashier // must be less than MaxPeople
-	// init cur_n_clients_wait_server
-
-	// init cashier_service_queue // len of queue equals cur_n_clients_wait_cashier
-	// init server_service_queue // len of queue equals cur_n_clients_wait_server
-	//
-	// save MaxNumOfCashiers in shm // accessed by cashier
-	// save MaxPeople in shm // accessed by client
-	// save MaxTimeWait in shm // accessed by all
-	// load menu items struct array structure and save in shm
-	//
-	//
-	//
-	// read client id, order and price from shm and save to db folder
-	// gen summary statistics and save to stat folder
-	//
-	// deallocate semaphores
-	// deallocate shm
-	// exit
 
 	return 0;
 }
