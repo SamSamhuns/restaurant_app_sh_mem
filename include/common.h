@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #define MAX_ITEM_DESC_LEN 125 // max len of menu items
+#define MAX_SHMID_LEN 30 // Max length of shmid
 #define DEBUG 1 // Debug Mode
 #define MAX_SHM_SIZE 4096 // max size of shared memory in bytes
 
@@ -13,8 +14,16 @@
   SHortened to:
             TRY_AND_CATCH(pipe(fd_pipe), "pipe");
 */
-#define TRY_AND_CATCH(exp, err_cmd) do { \
-    if ((exp < 0) || (exp == NULL)) { \
+#define TRY_AND_CATCH_INT(exp, err_cmd) do { \
+    if (exp < 0) { \
+        perror(err_cmd); \
+        exit(1);   \
+    } \
+} while (0)
+
+/* For catching NULL pointers*/
+#define TRY_AND_CATCH_NULL(exp, err_cmd) do { \
+    if (exp == NULL) { \
         perror(err_cmd); \
         exit(1);   \
     } \
