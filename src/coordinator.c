@@ -12,6 +12,9 @@
 #include <semaphore.h>
 #include "common.h"
 
+sem_t cashierS;
+sem_t clientQS;
+
 /* function for validating the cmd line args input */
 int cmd_validate(int argc, char const *argv[], long *MaxCashiers, long *MaxPeople, long *MaxTimeWait);
 
@@ -27,9 +30,14 @@ int main(int argc, char const *argv[]) {
 	}
 	// printf("DEBUG mc is %li, mp is %li and mt is %li\n", MaxCashiers, MaxPeople, MaxTimeWait);
 
+	/*Creating a shared memory struct*/
+	typedef struct shared_memory_struct {
+		;
+	} shared_memory_struct;
+
 	/* loading the menu items from the txt file into a menu_items struct*/
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
-	TRY_AND_CATCH(menu_file, "fopen_error");
+	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
 
 	// Create a Item struct array to hold each item from diner menu
 	struct Item menu_items[num_menu_items(menu_file)];
@@ -42,11 +50,14 @@ int main(int argc, char const *argv[]) {
 	// 	       menu_items[temp_num].menu_min_time, menu_items[temp_num].menu_max_time
 	// 	       );
 	// }
+	sem_init(&cashierS, 1, 0);
+	sem_init(&clientQS, 1, 0);
 
 
 
-	/* name of the shared memory object */
-	const char* name = "OS";
+	/* name of the shared memory object / shmid */
+	const char* shmid = "0001";
+	fprintf(stdout, "Shared mem restaurant id is %s\n", shmid);
 
 	/* strings written to shared memory */
 	const char* message_0 = "Hello";
@@ -60,7 +71,8 @@ int main(int argc, char const *argv[]) {
 
 	/* create the shared memory object O_EXCL flag gives error if a shared memory
 	    with the given name already exists */
-	shm_fd = shm_open(name, O_CREAT | O_RDWR | O_EXCL, 0666);
+	shm_fd = shm_open(shmid, O_CREAT | O_RDWR | O_EXCL, 0666);
+	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* configure the size of the shared memory object */
 	ftruncate(shm_fd, MAX_SHM_SIZE);
@@ -76,11 +88,14 @@ int main(int argc, char const *argv[]) {
 
 	int cc;
 	printf("Scanning an int for syn\n");
-	scanf("%d\n",&cc);
+	scanf("%d",&cc);
+
+	sem_destroy(clientQS);
+	sem_destroy(cashierS);
 
 	munmap(ptr, MAX_SHM_SIZE);
 	close(shm_fd);
-	shm_unlink(name);
+	shm_unlink(shmid);
 
 
 	/*TODO*/
