@@ -3,6 +3,9 @@
 
 #define MAX_ITEM_DESC_LEN 125 // max len of menu items
 #define MAX_SHMID_LEN 30 // Max length of shmid
+#define CASHIER_SEM "/cashier_sem" // named cashier semaphore
+#define CLIENTQ_SEM "/clientQ_sem" // amed client queue semaphore
+
 #define DEBUG 1 // Debug Mode
 #define MAX_SHM_SIZE 4096 // max size of shared memory in bytes
 
@@ -29,6 +32,14 @@
     } \
 } while (0)
 
+/* For catching sem_open erros */
+#define TRY_AND_CATCH_SEM(sem_exp, err_cmd) do { \
+    if (sem_exp == SEM_FAILED) { \
+        perror(err_cmd); \
+        exit(1);   \
+    } \
+} while (0)
+
 /* struct representing each menu item as Item
     an array can be created using struct Item menuItemList[num_of_items] */
 typedef struct Item {
@@ -38,6 +49,15 @@ typedef struct Item {
 	long menu_min_time;
 	long menu_max_time;
 } Item;
+
+/*Creating a shared memory struct*/
+typedef struct shared_memory_struct {
+    int MaxCashiers;
+    int MaxPeople;
+    int closeRestaurant;
+    int totalCashierNum;
+    int totalClientNum;
+} shared_memory_struct;
 
 /* Checks if the string str is all digits
     returns 0 for True (str is all digits) and 1 for False (Not a number) */
