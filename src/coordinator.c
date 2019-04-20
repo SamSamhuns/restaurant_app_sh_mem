@@ -13,6 +13,10 @@
 #include <semaphore.h>
 #include "common.h"
 
+/* functions for handling signals only for coordinator
+    WARNING using SIGINT/ Ctrl ^ C will not kill other Cashier,
+    Server and Client processes
+    To kill all other processes coordinator must have a normal shutdown */
 void sigterm_handler(int sig_num);
 void sigint_handler(int sig_num);
 
@@ -44,13 +48,10 @@ int main(int argc, char const *argv[]) {
 	/* Setting the SIGTERM signal handler to sigterm_handler */
 	signal(SIGTERM, sigterm_handler);
 
-	/* INITIALIZE THE SHARED MEMORY STRUCTURE */
-
+	////////////////* INITIALIZE THE SHARED MEMORY STRUCTURE *//////////////////
 	/* name of the shared memory object / SHMID */
 	fprintf(stdout, "Shared Memory Restaurant SHMID is %s\n", SHMID);
-
-	/* shared memory file descriptor */
-	int shm_fd;
+	int shm_fd; /* shared memory file descriptor */
 	struct Shared_memory_struct *shared_mem_ptr;
 
 	/* named semaphores initialization */
@@ -70,12 +71,10 @@ int main(int argc, char const *argv[]) {
 	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* configure the size of the shared memory object */
-	if (ftruncate(shm_fd, sizeof(Shared_memory_struct)) == -1 )
-	{
+	if (ftruncate(shm_fd, sizeof(Shared_memory_struct)) == -1 ) {
 		perror("ftruncate");
 		exit(1);
 	}
-
 	/* memory map the shared memory object */
 	if ((shared_mem_ptr = mmap(0, sizeof(Shared_memory_struct),
 	                           PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
@@ -97,13 +96,14 @@ int main(int argc, char const *argv[]) {
 	shared_mem_ptr->front_server_Q = -1;
 	shared_mem_ptr->rear_server_Q = -1;
 	shared_mem_ptr->size_server_Q = -1;
-	shared_mem_ptr->client_record_cur_size = 0;
-	shared_mem_ptr->MaxCashiers = MaxCashiers;
-	shared_mem_ptr->MaxPeople = MaxPeople;
-	shared_mem_ptr->server_pid = -1;
-	shared_mem_ptr->totalCashierNum = 0;
-	shared_mem_ptr->totalClientNum = 0;
-	shared_mem_ptr->totalClientOverall = 0;
+	shared_mem_ptr->cur_client_record_size = 0;
+	shared_mem_ptr->MaxCashiers = MaxCashiers; // should not change later
+	shared_mem_ptr->MaxPeople = MaxPeople;  // should not change later
+	shared_mem_ptr->initiate_shutdown = 0; // shutdown not initiated in the beginning
+	shared_mem_ptr->server_pid = 100000; // place holder server_pid
+	shared_mem_ptr->cur_cashier_num = 0;
+	shared_mem_ptr->cur_client_num = 0;
+	shared_mem_ptr->overall_client_num = 0;
 
 	/* release semaphore write lock after writing to shared memory */
 	if (sem_post(shared_mem_write_sem) == -1) {
@@ -115,39 +115,57 @@ int main(int argc, char const *argv[]) {
 	printf("REMOVE LATER Scanning an int for TEMP SYNCHRONIZATION:\n");
 	scanf("%d",&cc);
 
-	sleep(5); // To give enough time for clients to arrive in the beginning
-	/* if there are no clients in the restaurant then sleep for a while
-	    and check if still no clients then close restaurant and
-	    send kill signals to all cashiers and the server */
-	if ( shared_mem_ptr->totalClientNum == 0 ) {
-		sleep(MaxTimeWait);
-		if ( shared_mem_ptr->totalClientNum == 0 ) {
-			/* code */
+	sleep(2); // To give enough time for clients to arrive in the beginning
+
+	////////////////////////////////////////////////////////////////////////////
+	/////////////////* Main while loop in coordinator begins *//////////////////
+	////////////////////////////////////////////////////////////////////////////
+	while (1) {
+		/* if there are no clients in the restaurant then sleep for a while
+		    and check if still no clients then close restaurant and
+		    send kill signals to all cashiers and the server */
+		if ( shared_mem_ptr->cur_client_num == 0 ) {
+			sleep(MaxTimeWait);
+			if ( shared_mem_ptr->cur_client_num == 0 ) {
+				shared_mem_ptr->initiate_shutdown = 1; // initiate shutdown for all processes and take no more clients
+				///////////////////*  GENERATE STATISTICS  *////////////////////
+
+
+
+
+				/////////////////////* NORMAL EXIT CLEAN UP*////////////////////
+				/* kill the server process if open */
+				if (kill( shared_mem_ptr->server_pid, SIGTERM) == -1 ) {
+					fprintf(stderr, "Server process does not exist\n");
+				}
+				else {
+					fprintf(stdout, "Shutting Server with pid %li\n",
+					        (long)shared_mem_ptr->server_pid);
+				}
+
+				/* kill all cashier processes if open */
+				int cur_cashier_num = shared_mem_ptr->cur_cashier_num;
+				for (int i = 0; i < cur_cashier_num; i++) {
+					pid_t cashier_pid = shared_mem_ptr->cashier_pid_queue[i];
+					printf("Shutting cashier with pid %li\n", (long)cashier_pid );
+					if (kill( cashier_pid, SIGTERM) == -1 ) {
+						fprintf(stderr, "Cashier with pid %li does not exist\n",
+						        (long)cashier_pid);
+					};
+				}
+
+				// close all sems and shm
+				all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+				// unlink all sems and shm
+				coordinator_only_exit_cleanup();
+				fprintf(stdout, "Shutting down restaurant normally\n");
+				return 0; // exit normally
+			}
 		}
 	}
-
-
-
-
-	/*EXIT CLEAN UP*/
-	/* close the named semaphores */
-	sem_close(cashierS);
-	sem_close(clientQS);
-	/* remove the named semaphores
-	    IMPORTANT only coordinator should call this
-	    at the end */
-	sem_unlink(CASHIER_SEM);
-	sem_unlink(CLIENTQ_SEM);
-
-	munmap(shared_mem_ptr, sizeof(Shared_memory_struct));  /* unmap the shared mem object */
-	close(shm_fd);  /* close the file descrp from shm_open */
-	/* remove the shared mem object
-	    IMPORTANT only coordinator should call this
-	    at the end */
-	shm_unlink(SHMID);
-
-
-	return 0;
+	/* WARNING Control should never reach here */
+	fprintf(stderr, "Error: CONTROL escaped normal loop\n");
+	return 1;
 }
 
 /* function for validating the cmd line args input */
@@ -183,6 +201,20 @@ int cmd_validate(int argc, char const *argv[], long *MaxCashiers, long *MaxPeopl
 			*MaxTimeWait = strtol(argv[i+1], NULL, 10);
 		}
 	}
+	/* additional check if MaxPeople and MaxCashiers are valid */
+	if (*MaxCashiers > MAX_CASHIER_CAP) {
+		fprintf(stderr,
+		        "Max number of cashiers (%li) cannot exceed global Maximum (%d)\n", *MaxCashiers, MAX_CASHIER_CAP);
+		fprintf(stderr, "Change Global max in common.h\n");
+		exit(1);
+	}
+	if (*MaxPeople > MAX_REST_QUEUE_CAP) {
+		fprintf(stderr,
+		        "Max number of people servicable (%li) cannot exceed global Maximum (%d)\n", *MaxPeople, MAX_REST_QUEUE_CAP);
+		fprintf(stderr, "Change Global max in common.h\n");
+		exit(1);
+	}
+
 	if (maxC_found == 1 && maxP_found == 1 && maxT_found == 1) {
 		return 0;
 	}
@@ -197,7 +229,7 @@ void sigint_handler(int sig_num) {
 	fflush(stdout);
 
 	/*EXIT CLEAN UP*/
-	coordinator_exit_cleanup ();
+	coordinator_only_exit_cleanup ();
 	exit(0);
 }
 
@@ -209,6 +241,6 @@ void sigterm_handler(int sig_num) {
 	fflush(stdout);
 
 	/*EXIT CLEAN UP*/
-	coordinator_exit_cleanup ();
+	coordinator_only_exit_cleanup ();
 	exit(0);
 }
