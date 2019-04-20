@@ -102,15 +102,7 @@ int main(int argc, char const *argv[]) {
 	}
 	// exit of main while loop
 
-	// DEBUG
-
-
-	int cc;
-	printf("REMOVE LATER Scanning an int for TEMP SYNCHRONIZATION:\n");
-	scanf("%d",&cc);
-	// DEBUG END
-
-	/* Clean up normally */
-	all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
-	return 0;
+	/* WARNING Control should never reach here */
+	fprintf(stderr, "Error: CONTROL escaped normal loop\n");
+	return 1;
 }
