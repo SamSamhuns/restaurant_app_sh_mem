@@ -2,10 +2,15 @@ IDIR :=include# directory for header files
 SDIR :=src# source directory
 ODIR :=obj# object file directory
 CC := gcc# C compiler
-# CC := g++# C++ compiler
-LDFLAGS:= # Compiler flags i.e. -lm
-CFLAGS := -std=c99 -Wall -Wshadow -Werror -I$(IDIR) -lrt -D_XOPEN_SOURCE=500# C compiler flags
-# CFLAGS := -Wall -Wshadow -Werror -I$(IDIR)# C++ compiler flags
+LDFLAGS := # Compiler flags i.e. -lm
+UNAME := $(shell uname)# Check the OS
+
+ifeq ($(UNAME), Linux)# Linux compilation
+CFLAGS := -std=c99 -Wall -Wshadow -Werror -I$(IDIR) -D_XOPEN_SOURCE=500 -lrt -pthread# C compiler flags
+endif
+ifeq ($(UNAME), Darwin)# OSX compilation
+CFLAGS := -std=c99 -Wall -Wshadow -Werror -I$(IDIR) -D_XOPEN_SOURCE=500# C compiler flags
+endif
 
 # Getting the list of header files
 HEADERS = $(wildcard $(IDIR)/*.h)
@@ -42,3 +47,6 @@ clean-mac-fsys:
 
 clean-build:
 	rm -rf server client coordinator cashier
+
+clean-stats:
+	rm -rf stats
