@@ -9,7 +9,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <semaphore.h>
 #include "common.h"
 
@@ -93,7 +92,7 @@ int main(int argc, char const *argv[]){
 		return 0;
 	}
 
-	if (shared_mem_ptr->cur_cashier_num == 0 || shared_mem_ptr->server_pid == 100000) {
+	if (shared_mem_ptr->cur_cashier_num == 0 || shared_mem_ptr->server_pid == NO_SERVER_TEMP_PID) {
 		printf("Client will leave because restaurant is not properly staffed\n");
 		/* Clean up normally */
 		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
@@ -102,7 +101,7 @@ int main(int argc, char const *argv[]){
 
 
 
-	printf("Client has Successfully ordeed, dined and left the restaurant\n");
+	printf("Client has successfully ordered, dined and left the restaurant\n");
 	/* Clean up normally */
 	all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 	return 0;
