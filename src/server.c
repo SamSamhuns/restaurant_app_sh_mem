@@ -9,7 +9,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <semaphore.h>
 #include "common.h"
 
@@ -58,28 +57,27 @@ int main(int argc, char const *argv[]) {
 	printf("DEBUG The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
 
 	/* Check if more than one servers are being tried to be initiated */
-	if ( shared_mem_ptr->server_pid != 100000) {
-		printf("Only one server is allowed in the restaurant\n");
-		/* Clean up normally */
-		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
-		return 0;
-	}
 	/* add Server pid to the server pid var in shared mem */
+	if (shared_mem_ptr->server_pid == NO_SERVER_TEMP_PID) {
+			/* Acquire semaphore lock first before writing */
+			if (sem_wait(shared_mem_write_sem) == -1) {
+				perror("sem_wait()");
+				exit(1);
+			}
+
+			shared_mem_ptr->server_pid = getpid();
+
+			/* release semaphore write lock after writing to shared memory */
+			if (sem_post(shared_mem_write_sem) == -1) {
+				perror("sem_post()");
+				exit(1);
+			}
+	}
 	else {
-		/* Acquire semaphore lock first before writing */
-		if (sem_wait(shared_mem_write_sem) == -1) {
-			perror("sem_wait()");
-			exit(1);
-		}
-
-		shared_mem_ptr->server_pid = getpid();
-
-		/* release semaphore write lock after writing to shared memory */
-		if (sem_post(shared_mem_write_sem) == -1) {
-			perror("sem_post()");
-			exit(1);
-		}
-
+			printf("Only one server is allowed in the restaurant\n");
+			/* Clean up normally */
+			all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+			return 0;
 	}
 	////////////////////////////////////////////////////////////////////////////
 	/////////////////* Main while loop in Cashier begins *//////////////////////
