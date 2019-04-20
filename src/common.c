@@ -3,8 +3,18 @@
  */
 #include <ctype.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/types.h>
+#include <semaphore.h>
 #include "common.h"
 
 /* Checks if the string str is all digits
@@ -31,7 +41,7 @@ int num_menu_items(FILE *fptr) {
 }
 
 /* function that parses the menu item file and loads each item
-	with id, name, price with min and max time for waiting */
+    with id, name, price with min and max time for waiting */
 void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]) {
 	/* read the header to prevent re-reading it*/
 	char temp_hdr[MAX_ITEM_DESC_LEN];
@@ -47,4 +57,20 @@ void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]) {
 		menu_items[menu_iter].menu_max_time = strtol(strtok(NULL,","), NULL, 10);
 		menu_iter += 1;
 	}
+}
+
+/* FINAL CLEAN UP processed
+    should only be called by the signal handlers
+    in the coordinator */
+void coordinator_exit_cleanup () {
+	/* remove the named semaphores
+	    IMPORTANT only coordinator should call this
+	    at the end */
+	sem_unlink(CASHIER_SEM);
+	sem_unlink(CLIENTQ_SEM);
+	sem_unlink(SHARED_MEM_WR_LOCK_SEM);
+	/* remove the shared mem object
+	    IMPORTANT only coordinator should call this
+	    at the end */
+	shm_unlink(SHMID);
 }
