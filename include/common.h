@@ -54,15 +54,10 @@ typedef struct Item {
 	long menu_max_time;
 } Item;
 
-typedef struct Client_CashQ_item {
+typedef struct Client_Queue_item {
     pid_t client_pid;
     int menu_item_id;
-} Client_CashQ_item;
-
-typedef struct Client_ServQ_item {
-    pid_t client_pid;
-    int menu_item_id;
-} Client_ServQ_item;
+} Client_Queue_item;
 
 /* This is the main client record struct item */
 typedef struct Client_record_item {
@@ -85,12 +80,12 @@ typedef struct Shared_memory_struct {
     int front_client_Q;
     int rear_client_Q;
     int size_client_Q;
-    struct Client_CashQ_item client_cashier_queue[MAX_REST_QUEUE_CAP];
+    struct Client_Queue_item client_cashier_queue[MAX_REST_QUEUE_CAP];
 
     int front_server_Q;
     int rear_server_Q;
     int size_server_Q;
-    struct Client_ServQ_item client_server_queue[MAX_REST_QUEUE_CAP];
+    struct Client_Queue_item client_server_queue[MAX_REST_QUEUE_CAP];
 
     /* client_record_cur_size cannot exceed MAX_REST_QUEUE_CAP */
     int cur_client_record_size;
@@ -131,5 +126,28 @@ void all_exit_cleanup (sem_t *clientQS,
                                    sem_t *shared_mem_write_sem,
                                    struct Shared_memory_struct *shared_mem_ptr,
                                    int *shm_fd);
+
+/* func to enqueue client pid in cashier FIFO queue
+	This function automatically does a shared mem write semaphore lock
+	IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+void enqueue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr,
+	long menu_item_id, sem_t *shared_mem_write_sem);
+
+/* func to enqueue client pid in server FIFO queue
+This function automatically does a shared mem write semaphore lock
+IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+void enqueue_client_server_q(struct Shared_memory_struct *shared_mem_ptr,
+	long menu_item_id, sem_t *shared_mem_write_sem);
+
+/* func to dequeue client pid item in client FIFO queue
+This function automatically does a shared mem write semaphore lock
+IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+void dequeue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem);
+
+/* func to dequeue client pid item in server FIFO queue
+This function automatically does a shared mem write semaphore lock
+IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+void dequeue_client_server_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem);
+
 
 #endif
