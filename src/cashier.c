@@ -9,7 +9,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <semaphore.h>
 #include "common.h"
 
@@ -81,7 +80,7 @@ int main(int argc, char const *argv[]) {
 		}
 
 		int cashier_pos_temp = shared_mem_ptr->cur_cashier_num;
-		shared_mem_ptr->cashier_pid_queue[cashier_pos_temp] = getpid();
+		shared_mem_ptr->cashier_pid_array[cashier_pos_temp] = getpid();
 		shared_mem_ptr->cur_cashier_num += 1;
 
 		/* release semaphore write lock after writing to shared memory */
