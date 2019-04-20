@@ -81,19 +81,19 @@ int main(int argc, char const *argv[]) {
 	/* join the cashier list by adding cashier pid to cashier_pid_queue */
 	else {
 		//////* Acquire semaphore lock first before writing in shared memory *//////
-		if (sem_wait(shared_mem_write_sem) == -1) {																//
-			perror("sem_wait()");																										//
-			exit(1);																																//
-		}																																					//
-		int cashier_pos_temp = shared_mem_ptr->cur_cashier_num;										//
-		shared_mem_ptr->cashier_pid_array[cashier_pos_temp] = getpid();						//
-		shared_mem_ptr->cur_cashier_num += 1;																			//
-																																							//
-		/* release semaphore write lock after writing to shared memory */					//
-		if (sem_post(shared_mem_write_sem) == -1) {																//
-			perror("sem_post()");																										//
-			exit(1);																																//
-		}																																					//
+		if (sem_wait(shared_mem_write_sem) == -1) {
+			perror("sem_wait()");
+			exit(1);
+		}
+		int cashier_pos_temp = shared_mem_ptr->cur_cashier_num;
+		shared_mem_ptr->cashier_pid_array[cashier_pos_temp] = getpid();
+		shared_mem_ptr->cur_cashier_num += 1;
+
+		/* release semaphore write lock after writing to shared memory */
+		if (sem_post(shared_mem_write_sem) == -1) {
+			perror("sem_post()");
+			exit(1);
+		}
 		////////////////////////////////////////////////////////////////////////////
 	}
 
@@ -109,16 +109,16 @@ int main(int argc, char const *argv[]) {
 			return 0;
 		}
 		/* Cashier locks the cashierS semaphore before proceeding to make sure
-		not two cashiers grab the same client */
+		   not two cashiers grab the same client */
 		////////////////////////////////////////////////////////////////////////////
-		if (sem_wait(cashierS) == -1) { 										// wait(CaS)
+		if (sem_wait(cashierS) == -1) {                                         // wait(CaS)
 			perror("sem_wait()");
 			exit(1);
 		}
 		/* If there are no clients currently waiting to be processed in the cashier client queue
-		 take a break */
+		   take a break */
 		if (shared_mem_ptr->size_client_Q <= 0) {
-			/* Cashier releases cashierS lock */												// Signal (CaS)
+			/* Cashier releases cashierS lock */                                         // Signal (CaS)
 			if (sem_post(cashierS) == -1) {
 				perror("sem_post()");
 				exit(1);
@@ -128,65 +128,75 @@ int main(int argc, char const *argv[]) {
 				temp_sleep_time = 1;
 			}
 			printf("No clients currently in cashier queue. Cashier taking a break for %i s\n",
-			 			temp_sleep_time);
+			       temp_sleep_time);
 			sleep(temp_sleep_time);
 		}
 
 		/* if there are clients queuing up in the client cashier queue */
 		else {
-				/* Cashier locks the clientQS semaphore */								// wait (CiQS)
-				if (sem_wait(clientQS) == -1) {
-					perror("sem_wait()");
-					exit(1);
-				}
+			/* Cashier locks the clientQS semaphore */                                  // wait (CiQS)
+			if (sem_wait(clientQS) == -1) {
+				perror("sem_wait()");
+				exit(1);
+			}
 
-				/* Write client information to the shared memory in client_record_array */
-				//////* Acquire semaphore lock first before writing in shared memory *//////
-				if (sem_wait(shared_mem_write_sem) == -1) {																//
-					perror("sem_wait()");																										//
-					exit(1);																																//
-				}																																					//
+			/* Write client information to the shared memory in client_record_array */
+			//////* Acquire semaphore lock first before writing in shared memory *//////
+			if (sem_wait(shared_mem_write_sem) == -1) {
+				perror("sem_wait()");
+				exit(1);
+			}
 
-				int cli_record_index = shared_mem_ptr->cur_client_record_size;
-				/* save client pid */
-				(shared_mem_ptr->client_record_array[cli_record_index]).client_pid = \
-						(shared_mem_ptr->client_cashier_queue[shared_mem_ptr->front_client_Q]).client_pid;
-				/* save client menu item id */
-				(shared_mem_ptr->client_record_array[cli_record_index]).menu_item_id = \
-						(shared_mem_ptr->client_cashier_queue[shared_mem_ptr->front_client_Q]).menu_item_id;
+			int cli_record_index = shared_mem_ptr->cur_client_record_size;
+			/* decrement by 1 as the menu items are zero indexed in menu_items struct */
+			int menu_item_id = ((shared_mem_ptr->client_cashier_queue[shared_mem_ptr->front_client_Q]).menu_item_id)-1;
+			/* save client pid */
+			(shared_mem_ptr->client_record_array[cli_record_index]).client_pid = \
+				(shared_mem_ptr->client_cashier_queue[shared_mem_ptr->front_client_Q]).client_pid;
+			/* save client menu item id */
+			(shared_mem_ptr->client_record_array[cli_record_index]).menu_item_id = menu_item_id;
+			/* save desc of item ordered */
+			strcpy( (shared_mem_ptr->client_record_array[cli_record_index]).menu_desc, menu_items[menu_item_id].menu_desc );
+			/* save price of item ordered */
+			(shared_mem_ptr->client_record_array[cli_record_index]).menu_price = menu_items[menu_item_id].menu_price;
 
-				/*TODO save other stats */
+			/* save time with cashier */
+			int temp_sleep_time = rand() % (((int)serviceTime)+1);
+			if (temp_sleep_time == 0) {     // if the rand created a perfectly divisible num
+				temp_sleep_time = 1;
+			}
+			printf("Server %li currently serving Client %li with serve time %i \n",
+			       (long) getpid(),
+			       (long) (shared_mem_ptr->client_record_array[cli_record_index]).client_pid,
+			       temp_sleep_time);
 
+			(shared_mem_ptr->client_record_array[cli_record_index]).time_with_cashier = temp_sleep_time;
 
+			/* after this is set, the pending client should run immediately */
+			shared_mem_ptr->cur_client_record_size += 1;
 
-				shared_mem_ptr->cur_client_record_size += 1;
-																																									//
-				/* release semaphore write lock after writing to shared memory */					//
-				if (sem_post(shared_mem_write_sem) == -1) {																//
-					perror("sem_post()");																										//
-					exit(1);																																//
-				}																																					//
-				////////////////////////////////////////////////////////////////////////////
+			/* release semaphore write lock after writing to shared memory */
+			if (sem_post(shared_mem_write_sem) == -1) {
+				perror("sem_post()");
+				exit(1);
+			}
+			////////////////////////////////////////////////////////////////////////////
 
+			/*remove the client from the queue after writing its information to the
+			    client client_record_array */
+			dequeue_client_cashier_q(shared_mem_ptr, shared_mem_write_sem);
 
-				/*remove the client from the queue after writing its information to the
-					client client_record_array */
-				dequeue_client_cashier_q(shared_mem_ptr, shared_mem_write_sem);
-
-
-				/* Cashier releases the cashierS lock */ 								 // Signal (CaS)
-				if (sem_post(cashierS) == -1) {
-					perror("sem_post()");
-					exit(1);
-				}
-				/* Cashier releases the clientQS semaphore */ 					 // Signal (CiQS)
-				if (sem_post(clientQS) == -1) {
-					perror("sem_wait()");
-					exit(1);
-				}
-
-				/*TODO write to shared memory */
-
+			/* Cashier releases the cashierS lock */                             // Signal (CaS)
+			if (sem_post(cashierS) == -1) {
+				perror("sem_post()");
+				exit(1);
+			}
+			/* Cashier releases the clientQS semaphore */                        // Signal (CiQS)
+			if (sem_post(clientQS) == -1) {
+				perror("sem_wait()");
+				exit(1);
+			}
+			sleep(temp_sleep_time); /* cashier serves client */
 		}
 
 
@@ -194,16 +204,9 @@ int main(int argc, char const *argv[]) {
 
 	}
 	// exit of main while loop
-
-	// DEBUG
-	int cc;
-	printf("REMOVE LATER Scanning an int for TEMP SYNCHRONIZATION:\n");
-	scanf("%d",&cc);
-	// DEBUG END
-
-	/* Clean up normally */
-	all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
-	return 0;
+	/* WARNING Control should never reach here */
+	fprintf(stderr, "Error: CONTROL escaped normal loop\n");
+	return 1;
 }
 
 /* function for validating the cmd line args input */
