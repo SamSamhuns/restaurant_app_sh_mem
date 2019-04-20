@@ -38,10 +38,13 @@ int main(int argc, char const *argv[]){
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
 
+	////////////////* ACCESS THE SHARED MEMORY STRUCTURE *//////////////////////
 	sem_t *clientQS = sem_open(CLIENTQ_SEM, 0); /* open existing clientQS semaphore */
 	sem_t *cashierS = sem_open(CASHIER_SEM, 0); /* open existing cashierS semaphore */
+	sem_t *shared_mem_write_sem = sem_open(SHARED_MEM_WR_LOCK_SEM, 0); /* open existing shared_mem_write_sem semaphore */
 	TRY_AND_CATCH_SEM(clientQS, "sem_open()");
 	TRY_AND_CATCH_SEM(cashierS, "sem_open()");
+	TRY_AND_CATCH_SEM(shared_mem_write_sem, "sem_open()");
 
 	/* shared memory file descriptor */
 	int shm_fd;
@@ -59,36 +62,41 @@ int main(int argc, char const *argv[]){
 	};
 
 	/* read from the shared memory object */
-	printf("The maxCashier number is %i\n",  shared_mem_ptr->MaxCashiers);
-	printf("The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
+	printf("DEBUG The maxCashier number is %i\n",  shared_mem_ptr->MaxCashiers);
+	printf("DEBUG The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
 
-	/* close the named semaphores */
-	sem_close(clientQS);
-	sem_close(cashierS);
+	////////////////////////////////////////////////////////////////////////////
+	////////////////////* Main section in Client begins *///////////////////////
+	////////////////////////////////////////////////////////////////////////////
 
-	/* remove the shared memory object */
-	munmap(shared_mem_ptr, sizeof(Shared_memory_struct));
-	close(shm_fd);
-	/* Cashiers should not delete the shared mem object
-	    shm_unlink(shmid);*/
+	/* If the current num of clients being served in the restaurant has reached MaxPeople limit */
+	if (shared_mem_ptr->cur_client_num+1 > shared_mem_ptr->MaxPeople) {
+		printf("Client will not be joining restaurant queue as it is full right now\n");
+		/* Clean up normally */
+		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+		return 0;
+	}
 
-	/*TODO*/
-	// get shmid and access it
-	// check cur_n_clients_wait_cashier against MaxPeople if not exit
-	//
-	// Add itself to the cashier_service_queue
-	// deal with cashier in [1....cashier->serviceTime] save time stats in shm
-	//
-	// Add itself to the server_service_queue
-	// deal/get food from server in [min_serv_time....max_serv_time] save time stats in shm
-	// eat for [1....eatTime] save time stats in shm
-	//
-	// deal with semaphores P() and V() funcs
-	// save its client_ID, item and price info in shm
-	// log all time spent with cashier, server and eating in shm
-	// exit
+	/* If the overall number of clients has exceeded the MAX_REST_QUEUE_CAP restaurant global capacity */
+	if (shared_mem_ptr->overall_client_num+1 > MAX_REST_QUEUE_CAP) {
+		printf("Client will leave because restaurant has reached its capacity and will not take any more clients today\n");
+		/* Clean up normally */
+		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+		return 0;
+	}
+
+	/* if shutting down has been initiated by the coordinator */
+	if (shared_mem_ptr->initiate_shutdown == 1) {
+		/* Clean up normally */
+		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+		return 0;
+	}
 
 
+
+	printf("Client has Successfully ordeed, dined and left the restaurant\n");
+	/* Clean up normally */
+	all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 	return 0;
 }
 
