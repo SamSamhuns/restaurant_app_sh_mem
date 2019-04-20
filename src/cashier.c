@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -26,7 +27,6 @@ int main(int argc, char const *argv[]) {
 		        "Incorrect args supplied. Usage: ./cashier -s serviceTime -b breakTime -m shmid\n");
 		return 1;
 	}
-	// printf("DEBUG s is %li, m is %s, b is %li\n",serviceTime, shmid, breakTime);
 
 	/* loading the menu items from the txt file into a menu_items struct*/
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
@@ -56,14 +56,14 @@ int main(int argc, char const *argv[]) {
 
 	/* shared memory file descriptor */
 	int shm_fd;
-	struct shared_memory_struct *shared_mem_ptr;
+	struct Shared_memory_struct *shared_mem_ptr;
 
 	/* open the shared memory object */
 	shm_fd = shm_open(shmid, O_RDWR, 0666);
 	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* memory map the shared memory object */
-	if ((shared_mem_ptr = mmap(0, sizeof(shared_memory_struct),
+	if ((shared_mem_ptr = mmap(0, sizeof(Shared_memory_struct),
 	                           PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
 		perror("mmap");
 		exit(1);
@@ -79,7 +79,7 @@ int main(int argc, char const *argv[]) {
 	sem_close(cashierS);
 
 	/* remove the shared memory object */
-	munmap(shared_mem_ptr, MAX_SHM_SIZE);
+	munmap(shared_mem_ptr, sizeof(Shared_memory_struct));
 	close(shm_fd);
 	/* Cashiers should not delete the shared mem object
 	    shm_unlink(shmid);*/
