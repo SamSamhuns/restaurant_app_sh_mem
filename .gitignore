@@ -57,6 +57,9 @@ client
 cashier
 coordinator
 
+# statistics folder and files
+stats
+
 # history txt file
 history.txt
 
