@@ -4,6 +4,7 @@
 #define MAX_ITEM_DESC_LEN 125 // max len of menu items
 #define MAX_SHMID_LEN 30 // Max length of shmid
 #define MAX_REST_QUEUE_CAP 50 // Max size of our client and server queue, Max number of clients restaurant can handle in one run / day
+#define SHMID "/0001_shm" // shared memory id
 #define CASHIER_SEM "/cashier_sem" // named cashier semaphore
 #define CLIENTQ_SEM "/clientQ_sem" // amed client queue semaphore
 #define SHARED_MEM_WR_LOCK_SEM "/shared_mem_write_sem" // semaphore to lock the write segment
@@ -117,5 +118,10 @@ int num_menu_items(FILE *fptr);
 /* function that parses the menu item file and loads each item
 	with id, name, price with min and max time for waiting */
 void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]);
+
+/* FINAL CLEAN UP function
+    should only be called by the signal handlers
+    in the coordinator */
+void coordinator_exit_cleanup ();
 
 #endif
