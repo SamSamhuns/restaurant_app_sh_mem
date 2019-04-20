@@ -56,22 +56,29 @@ int main(int argc, char const *argv[]) {
 	printf("DEBUG The maxCashier number is %i\n",  shared_mem_ptr->MaxCashiers);
 	printf("DEBUG The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
 
+	/* if shutting down has already been initiated by the coordinator */
+	if (shared_mem_ptr->initiate_shutdown == 1) {
+		/* Clean up normally */
+		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+		return 0;
+	}
 	/* Check if more than one servers are being tried to be initiated */
 	/* add Server pid to the server pid var in shared mem */
 	if (shared_mem_ptr->server_pid == NO_SERVER_TEMP_PID) {
-			/* Acquire semaphore lock first before writing */
-			if (sem_wait(shared_mem_write_sem) == -1) {
-				perror("sem_wait()");
-				exit(1);
-			}
+			////////* Acquire semaphore lock first before writing in shared memory *//////
+			if (sem_wait(shared_mem_write_sem) == -1) {																	//
+				perror("sem_wait()");																											//
+				exit(1);																																	//
+			}																																						//
+			shared_mem_ptr->server_pid = getpid();																			//
+																																									//
+			/* release semaphore write lock after writing to shared memory */						//
+			if (sem_post(shared_mem_write_sem) == -1) {																	//
+				perror("sem_post()");																											//
+				exit(1);																																	//
+			}																																						//
+			//////////////////////////////////////////////////////////////////////////////
 
-			shared_mem_ptr->server_pid = getpid();
-
-			/* release semaphore write lock after writing to shared memory */
-			if (sem_post(shared_mem_write_sem) == -1) {
-				perror("sem_post()");
-				exit(1);
-			}
 	}
 	else {
 			printf("Only one server is allowed in the restaurant\n");
@@ -90,6 +97,8 @@ int main(int argc, char const *argv[]) {
 			all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 			return 0;
 		}
+
+		/*TODO handle the server queue */
 	}
 	// exit of main while loop
 
