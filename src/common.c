@@ -59,18 +59,36 @@ void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]) {
 	}
 }
 
-/* FINAL CLEAN UP processed
-    should only be called by the signal handlers
-    in the coordinator */
-void coordinator_exit_cleanup () {
+/* FINAL CLEAN UP function for unlinking shm and sem
+    should only be called in the coordinator */
+void coordinator_only_exit_cleanup() {
 	/* remove the named semaphores
 	    IMPORTANT only coordinator should call this
-	    at the end */
-	sem_unlink(CASHIER_SEM);
-	sem_unlink(CLIENTQ_SEM);
-	sem_unlink(SHARED_MEM_WR_LOCK_SEM);
+	    at the end with error handling */
+	TRY_AND_CATCH_INT(sem_unlink(CASHIER_SEM), "sem_unlink");
+	TRY_AND_CATCH_INT(sem_unlink(CLIENTQ_SEM), "sem_unlink");
+	TRY_AND_CATCH_INT(sem_unlink(SHARED_MEM_WR_LOCK_SEM), "sem_unlink");
+
 	/* remove the shared mem object
 	    IMPORTANT only coordinator should call this
-	    at the end */
-	shm_unlink(SHMID);
+	    at the end with error handling */
+	TRY_AND_CATCH_INT(shm_unlink(SHMID), "shm_unlink");
+}
+
+/* Normal exit clean up call for all processes */
+void all_exit_cleanup(sem_t *clientQS,
+                      sem_t *cashierS,
+                      sem_t *shared_mem_write_sem,
+                      struct Shared_memory_struct *shared_mem_ptr,
+                      int *shm_fd) {
+	/* close the named semaphores with error handling */
+	TRY_AND_CATCH_INT(sem_close(clientQS), "sem_close");
+	TRY_AND_CATCH_INT(sem_close(cashierS), "sem_close");
+	TRY_AND_CATCH_INT(sem_close(shared_mem_write_sem), "sem_close");
+
+	/* remove the shared memory object with error handling */
+	TRY_AND_CATCH_INT(
+		munmap(shared_mem_ptr, sizeof(Shared_memory_struct)), "munmap()");
+	close(*shm_fd);
+	printf("Successfully exiting current process with pid %li\n", (long)getpid());
 }
