@@ -4,7 +4,8 @@
 #define MAX_ITEM_DESC_LEN 125 // max len of menu items
 #define MAX_SHMID_LEN 30 // Max length of shmid
 #define MAX_REST_QUEUE_CAP 50 // Max size of our client and server queue, Max number of clients restaurant can handle in one run / day
-#define SHMID "/0001_shm" // shared memory id
+#define MAX_CASHIER_CAP 50 // Global max on number of cashiers despite another limit on number of cashiers
+#define SHMID "0001" // shared memory id
 #define CASHIER_SEM "/cashier_sem" // named cashier semaphore
 #define CLIENTQ_SEM "/clientQ_sem" // amed client queue semaphore
 #define SHARED_MEM_WR_LOCK_SEM "/shared_mem_write_sem" // semaphore to lock the write segment
@@ -93,7 +94,7 @@ typedef struct Shared_memory_struct {
     struct Client_ServQ_item client_server_queue[MAX_REST_QUEUE_CAP];
 
     /* client_record_cur_size cannot exceed MAX_REST_QUEUE_CAP */
-    int client_record_cur_size;
+    int cur_client_record_size;
     struct Client_record_item client_record_queue[MAX_REST_QUEUE_CAP];
 
     /* static constants */
@@ -101,10 +102,12 @@ typedef struct Shared_memory_struct {
     int MaxPeople;
 
     /* dynamic values */
+    int initiate_shutdown; // 1 is all processes should initiate shutdown 
+    pid_t cashier_pid_queue[MAX_CASHIER_CAP]; // array of pids of cashier processes
     pid_t server_pid; // pid of current server program
-    int totalCashierNum; // current number of cashieers
-    int totalClientNum; // current number of total clients
-    int totalClientOverall; // overall number of clients processed must be less than MaxPeople
+    int cur_cashier_num; // current number of cashieers
+    int cur_client_num; // current number of total clients
+    int overall_client_num; // overall number of clients processed must be less than MaxPeople
 } Shared_memory_struct;
 
 /* Checks if the string str is all digits
@@ -119,9 +122,15 @@ int num_menu_items(FILE *fptr);
 	with id, name, price with min and max time for waiting */
 void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]);
 
-/* FINAL CLEAN UP function
-    should only be called by the signal handlers
-    in the coordinator */
-void coordinator_exit_cleanup ();
+/* FINAL CLEAN UP function for unlinking shm and sem
+    should only be called in the coordinator */
+void coordinator_only_exit_cleanup ();
+
+/* Normal exit clean up call for all processes */
+void all_exit_cleanup (sem_t *clientQS,
+                                   sem_t *cashierS,
+                                   sem_t *shared_mem_write_sem,
+                                   struct Shared_memory_struct *shared_mem_ptr,
+                                   int *shm_fd);
 
 #endif
