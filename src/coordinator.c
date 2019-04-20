@@ -1,3 +1,4 @@
+#include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
@@ -8,7 +9,6 @@
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/types.h>
 #include <semaphore.h>
 #include "common.h"
@@ -56,9 +56,9 @@ int main(int argc, char const *argv[]) {
 
 	/* named semaphores initialization */
 	sem_t *cashierS = sem_open(CASHIER_SEM,
-	                           O_CREAT | O_EXCL, 0666, 0); /* Init cashierS semaphore to 0 */
+	                           O_CREAT | O_EXCL, 0666, 1); /* Init cashierS semaphore to 1 */
 	sem_t *clientQS = sem_open(CLIENTQ_SEM,
-	                           O_CREAT | O_EXCL, 0666, 0); /* Init clientQS sempaphore to 0 */
+	                           O_CREAT | O_EXCL, 0666, 1); /* Init clientQS sempaphore to 1 */
 	sem_t *shared_mem_write_sem = sem_open(SHARED_MEM_WR_LOCK_SEM,
 	                                       O_CREAT | O_EXCL, 0666, 1); /* Init shared mem write sempaphore to 1 */
 	TRY_AND_CATCH_SEM(cashierS, "sem_open()");
@@ -100,7 +100,7 @@ int main(int argc, char const *argv[]) {
 	shared_mem_ptr->MaxCashiers = MaxCashiers; // should not change later
 	shared_mem_ptr->MaxPeople = MaxPeople;  // should not change later
 	shared_mem_ptr->initiate_shutdown = 0; // shutdown not initiated in the beginning
-	shared_mem_ptr->server_pid = 100000; // place holder server_pid
+	shared_mem_ptr->server_pid = NO_SERVER_TEMP_PID; // place holder server_pid
 	shared_mem_ptr->cur_cashier_num = 0;
 	shared_mem_ptr->cur_client_num = 0;
 	shared_mem_ptr->overall_client_num = 0;
@@ -126,33 +126,67 @@ int main(int argc, char const *argv[]) {
 		    send kill signals to all cashiers and the server */
 		if ( shared_mem_ptr->cur_client_num == 0 ) {
 			sleep(MaxTimeWait);
+			/* if still no clients present then initiate restaurant shutdown */
 			if ( shared_mem_ptr->cur_client_num == 0 ) {
 				shared_mem_ptr->initiate_shutdown = 1; // initiate shutdown for all processes and take no more clients
+
 				///////////////////*  GENERATE STATISTICS  *////////////////////
+				/* create a new stats folder and write to a statistics file*/
+				struct stat st = {0};
 
+				/* Create a mew stats directory if a current one doesn't already exist */
+				if (stat("stats", &st) == -1) {
+				    mkdir("stats", 0700);
+				}
 
+				/* Write a statistic_CURRENT_UNIX_TIME.txt file for statistics each time */
+				char f_stat_name[0x100];
+				sprintf(f_stat_name,"stats/statistics_%lu.txt", (unsigned long)time(NULL));
+				FILE *f_stats = fopen(f_stat_name, "w");
+				fprintf(f_stats, "Client_pid, item_ordered, money_spent($), eat_time, time_with_cashier, time_with_server, total_time_spent\n");
 
+				int cur_client_record_size = shared_mem_ptr->cur_client_record_size;
+				for (int i = 0; i < cur_client_record_size; i++) {
+						long client_pid = (long) ((shared_mem_ptr->client_record_array[i]).client_pid);
+						char menu_desc[MAX_ITEM_DESC_LEN];
+						strcpy(menu_desc, ((shared_mem_ptr->client_record_array[i]).menu_desc));
+						int menu_price = ((shared_mem_ptr->client_record_array[i]).menu_price);
+						int eat_time = ((shared_mem_ptr->client_record_array[i]).eat_time);
+						int time_with_cashier = ((shared_mem_ptr->client_record_array[i]).time_with_cashier);
+						int time_with_server = ((shared_mem_ptr->client_record_array[i]).time_with_server);
+						int total_time_spent = eat_time + time_with_cashier + time_with_server;
+						printf("Client with ID %li spent %i s with the cashier, %i s waiting for food and %i eating. \
+									In total, they spent %i s in the restaurant eating %s and spent a total of %i dollars.\n",
+							client_pid, time_with_cashier, time_with_server, eat_time, total_time_spent, menu_desc, menu_price);
+
+						fprintf(f_stats, "%li, %s, %i, %i, %i, %i, %i\n",
+										client_pid, menu_desc, menu_price, eat_time, time_with_cashier, time_with_server, total_time_spent);
+				}
+
+				fclose(f_stats);
 
 				/////////////////////* NORMAL EXIT CLEAN UP*////////////////////
+				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  /////////////
 				/* kill the server process if open */
-				if (kill( shared_mem_ptr->server_pid, SIGTERM) == -1 ) {
-					fprintf(stderr, "Server process does not exist\n");
-				}
-				else {
-					fprintf(stdout, "Shutting Server with pid %li\n",
-					        (long)shared_mem_ptr->server_pid);
-				}
-
-				/* kill all cashier processes if open */
-				int cur_cashier_num = shared_mem_ptr->cur_cashier_num;
-				for (int i = 0; i < cur_cashier_num; i++) {
-					pid_t cashier_pid = shared_mem_ptr->cashier_pid_queue[i];
-					printf("Shutting cashier with pid %li\n", (long)cashier_pid );
-					if (kill( cashier_pid, SIGTERM) == -1 ) {
-						fprintf(stderr, "Cashier with pid %li does not exist\n",
-						        (long)cashier_pid);
-					};
-				}
+				// if (kill( shared_mem_ptr->server_pid, SIGTERM) == -1 ) {
+				// 	fprintf(stderr, "Server process does not exist\n");
+				// }
+				// else {
+				// 	fprintf(stdout, "Shutting Server with pid %li\n",
+				// 	        (long)shared_mem_ptr->server_pid);
+				// }
+				//
+				// /* kill all cashier processes if open */
+				// int cur_cashier_num = shared_mem_ptr->cur_cashier_num;
+				// for (int i = 0; i < cur_cashier_num; i++) {
+				// 	pid_t cashier_pid = shared_mem_ptr->cashier_pid_array[i];
+				// 	printf("Shutting cashier with pid %li\n", (long)cashier_pid );
+				// 	if (kill( cashier_pid, SIGTERM) == -1 ) {
+				// 		fprintf(stderr, "Cashier with pid %li does not exist\n",
+				// 		        (long)cashier_pid);
+				// 	};
+				// }
+				///////////////////////////////////////////////////////////////
 
 				// close all sems and shm
 				all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
