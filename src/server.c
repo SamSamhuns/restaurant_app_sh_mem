@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/shm.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -21,8 +22,6 @@ int main(int argc, char const *argv[]) {
 		return 1;
 	}
 
-	// if (DEBUG == 1) printf("DEBUG Long is %li \n", shmid);
-
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
 	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
 
@@ -38,30 +37,29 @@ int main(int argc, char const *argv[]) {
 
 	/* shared memory file descriptor */
 	int shm_fd;
-
-	/* pointer to shared memory object */
-	void* ptr;
+	struct Shared_memory_struct *shared_mem_ptr;
 
 	/* open the shared memory object */
-	shm_fd = shm_open(argv[2], O_RDONLY, 0666);
+	shm_fd = shm_open(argv[2], O_RDWR, 0666);
 	TRY_AND_CATCH_INT(shm_fd, "shm_open()");
 
 	/* memory map the shared memory object */
-	ptr = mmap(0, MAX_SHM_SIZE,
-	           PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+	if ((shared_mem_ptr = mmap(0, sizeof(Shared_memory_struct),
+	                           PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
+		perror("mmap");
+		exit(1);
+	};
 
-	int cc;
-	printf("Scanning an int for syn\n");
-	scanf("%d",&cc);
 	/* read from the shared memory object */
-	printf("%s", (char*)ptr);
+	printf("The maxCashier number is %i\n",  shared_mem_ptr->MaxCashiers);
+	printf("The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
 
 	/* close the named semaphores */
 	sem_close(clientQS);
 	sem_close(cashierS);
 
 	/* remove the shared memory object */
-	munmap(ptr, MAX_SHM_SIZE);
+	munmap(shared_mem_ptr, sizeof(Shared_memory_struct));
 	close(shm_fd);
 	/* Server should not delete the shared mem object
 	    shm_unlink(shmid);*/
