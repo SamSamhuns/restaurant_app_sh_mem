@@ -87,6 +87,14 @@ int main(int argc, char const *argv[]){
 
 	/* if shutting down has been initiated by the coordinator */
 	if (shared_mem_ptr->initiate_shutdown == 1) {
+		printf("Client will leave because restaurant is going to shut down now\n");
+		/* Clean up normally */
+		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+		return 0;
+	}
+
+	if (shared_mem_ptr->cur_cashier_num == 0 || shared_mem_ptr->server_pid == 100000) {
+		printf("Client will leave because restaurant is not properly staffed\n");
 		/* Clean up normally */
 		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 		return 0;
