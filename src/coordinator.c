@@ -34,21 +34,12 @@ int main(int argc, char const *argv[]) {
 		return 1;
 	}
 
-	/* loading the menu items from the txt file into a menu_items struct*/
-	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
-	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
-
-	// Create a Item struct array to hold each item from diner menu
-	struct Item menu_items[num_menu_items(menu_file)];
-	load_item_struct_arr(menu_file, menu_items);
-	fclose(menu_file);
-
 	/* Setting the SIGINT (Ctrl-C) signal handler to sigint_handler */
 	signal(SIGINT, sigint_handler);
 	/* Setting the SIGTERM signal handler to sigterm_handler */
 	signal(SIGTERM, sigterm_handler);
 
-	////////////////* INITIALIZE THE SHARED MEMORY STRUCTURE *//////////////////
+	/////////////////* INITIALIZE THE SHARED MEMORY STRUCTURE *///////////////////
 	/* name of the shared memory object / SHMID */
 	fprintf(stdout, "Shared Memory Restaurant SHMID is %s\n", SHMID);
 	int shm_fd; /* shared memory file descriptor */
@@ -85,7 +76,8 @@ int main(int argc, char const *argv[]) {
 	printf("DEBUG size of shared memory is %zi\n",sizeof(Shared_memory_struct) );
 	/* write to the shared memory object */
 
-	/* Acquire semaphore lock first before writing */
+	///////////////* Acquire semaphore lock first before writing *////////////////
+	//////////////////////////////////////////////////////////////////////////////
 	if (sem_wait(shared_mem_write_sem) == -1) {
 		perror("sem_wait()");
 		exit(1);
@@ -110,6 +102,7 @@ int main(int argc, char const *argv[]) {
 		perror("sem_post()");
 		exit(1);
 	}
+	//////////////////////////////////////////////////////////////////////////////
 
 	int cc;
 	printf("REMOVE LATER Scanning an int for TEMP SYNCHRONIZATION:\n");
@@ -128,9 +121,23 @@ int main(int argc, char const *argv[]) {
 			sleep(MaxTimeWait);
 			/* if still no clients present then initiate restaurant shutdown */
 			if ( shared_mem_ptr->cur_client_num == 0 ) {
-				shared_mem_ptr->initiate_shutdown = 1; // initiate shutdown for all processes and take no more clients
 
-				///////////////////*  GENERATE STATISTICS  *////////////////////
+				////* Acquire semaphore lock first before writing in shared memory *////
+				////////////////////////////////////////////////////////////////////////
+				if (sem_wait(shared_mem_write_sem) == -1) {														//
+					perror("sem_wait()");																								//
+					exit(1);																														//
+				}																																			//
+				// initiate shutdown for all processes and take no more clients				//																													//
+				shared_mem_ptr->initiate_shutdown = 1;																//																		//
+				/* release semaphore write lock after writing to shared memory */			//
+				if (sem_post(shared_mem_write_sem) == -1) {														//
+					perror("sem_post()");																								//
+					exit(1);																														//
+				}																																			//
+				////////////////////////////////////////////////////////////////////////
+
+				///////////////////////*  GENERATE STATISTICS  *////////////////////////
 				/* create a new stats folder and write to a statistics file*/
 				struct stat st = {0};
 
@@ -162,10 +169,8 @@ int main(int argc, char const *argv[]) {
 						fprintf(f_stats, "%li, %s, %i, %i, %i, %i, %i\n",
 										client_pid, menu_desc, menu_price, eat_time, time_with_cashier, time_with_server, total_time_spent);
 				}
-
 				fclose(f_stats);
-
-				/////////////////////* NORMAL EXIT CLEAN UP*////////////////////
+				////////////////////////* NORMAL EXIT CLEAN UP*/////////////////////////
 				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  /////////////
 				/* kill the server process if open */
 				// if (kill( shared_mem_ptr->server_pid, SIGTERM) == -1 ) {
@@ -186,7 +191,7 @@ int main(int argc, char const *argv[]) {
 				// 		        (long)cashier_pid);
 				// 	};
 				// }
-				///////////////////////////////////////////////////////////////
+				////////////////////////////////////////////////////////////////////////
 
 				// close all sems and shm
 				all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
