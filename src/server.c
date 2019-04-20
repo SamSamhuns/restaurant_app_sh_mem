@@ -30,10 +30,13 @@ int main(int argc, char const *argv[]) {
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
 
+	////////////////* ACCESS THE SHARED MEMORY STRUCTURE *//////////////////////
 	sem_t *clientQS = sem_open(CLIENTQ_SEM, 0); /* open existing clientQS semaphore */
-	TRY_AND_CATCH_SEM(clientQS, "sem_open()");
 	sem_t *cashierS = sem_open(CASHIER_SEM, 0); /* open existing cashierS semaphore */
+	sem_t *shared_mem_write_sem = sem_open(SHARED_MEM_WR_LOCK_SEM, 0); /* open existing shared_mem_write_sem semaphore */
+	TRY_AND_CATCH_SEM(clientQS, "sem_open()");
 	TRY_AND_CATCH_SEM(cashierS, "sem_open()");
+	TRY_AND_CATCH_SEM(shared_mem_write_sem, "sem_open()");
 
 	/* shared memory file descriptor */
 	int shm_fd;
@@ -51,26 +54,56 @@ int main(int argc, char const *argv[]) {
 	};
 
 	/* read from the shared memory object */
-	printf("The maxCashier number is %i\n",  shared_mem_ptr->MaxCashiers);
-	printf("The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
+	printf("DEBUG The maxCashier number is %i\n",  shared_mem_ptr->MaxCashiers);
+	printf("DEBUG The maxPeople number is %i\n", shared_mem_ptr->MaxPeople);
 
-	/* close the named semaphores */
-	sem_close(clientQS);
-	sem_close(cashierS);
+	/* Check if more than one servers are being tried to be initiated */
+	if ( shared_mem_ptr->server_pid != 100000) {
+		printf("Only one server is allowed in the restaurant\n");
+		/* Clean up normally */
+		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+		return 0;
+	}
+	/* add Server pid to the server pid var in shared mem */
+	else {
+		/* Acquire semaphore lock first before writing */
+		if (sem_wait(shared_mem_write_sem) == -1) {
+			perror("sem_wait()");
+			exit(1);
+		}
 
-	/* remove the shared memory object */
-	munmap(shared_mem_ptr, sizeof(Shared_memory_struct));
-	close(shm_fd);
-	/* Server should not delete the shared mem object
-	    shm_unlink(shmid);*/
+		shared_mem_ptr->server_pid = getpid();
+
+		/* release semaphore write lock after writing to shared memory */
+		if (sem_post(shared_mem_write_sem) == -1) {
+			perror("sem_post()");
+			exit(1);
+		}
+
+	}
+	////////////////////////////////////////////////////////////////////////////
+	/////////////////* Main while loop in Cashier begins *//////////////////////
+	////////////////////////////////////////////////////////////////////////////
+
+	while (1) {
+		/* if shutting down has been initiated by the coordinator */
+		if (shared_mem_ptr->initiate_shutdown == 1) {
+			/* Clean up normally */
+			all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+			return 0;
+		}
+	}
+	// exit of main while loop
+
+	// DEBUG
 
 
+	int cc;
+	printf("REMOVE LATER Scanning an int for TEMP SYNCHRONIZATION:\n");
+	scanf("%d",&cc);
+	// DEBUG END
 
-	/*TODO*/
-	// get shmid and access it
-	// check if cur_n_clients_wait_server > 0 then
-	//		serve client FIFO from server_service_queue
-	//      Both client and server locked during servicetime
-
+	/* Clean up normally */
+	all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 	return 0;
 }
