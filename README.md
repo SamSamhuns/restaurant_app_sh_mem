@@ -28,11 +28,13 @@ Data on individual clients and orders are saved in the `db` folder while the sum
 $ make clean
 ```
 
-### Implementation
+### Notes on each program
 
 **1)  Coordinator**
 
-When the `coordinator` is invoked with the following command. It creates a shared segment of memory with id `shmid` and unnamed semaphores under the POSIX standards. The other players/processes access this same shared memory.
+When the `coordinator` is invoked with the command below. It creates a shared memory and named semaphores under the POSIX standards, finally printing out the `shmid`. The other participants/processes access this shared memory through the `shmid`.
+
+Note: The `shmid` is defined as global constant `SHMID` in `common.h`
 
 ```shell
 $ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
@@ -40,7 +42,7 @@ $ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
 
 -  `MaxNumOfCashiers` is the maximum number of cashiers that can be operating and invoked after the coordinator begins operation for the restaurant app.
 
--  `MaxPeople` is the maximum number of clients that can be waiting in the `FIFO` queue to be handled by `cashiers`. If more clients attempt to join, they will not join the client queue (process queue).
+-  `MaxPeople` is the maximum number of clients that can be present in the restaurant at any given time. If more clients attempt to join, they will simply exit.
 
 -  `MaxTimeWait` is the maximum time that the restaurant waits before closing the shop given that no new clients have entered and all current clients have left the restaurant.
 
@@ -50,20 +52,6 @@ The `server` needs access to the menu data structure in the shared memory segmen
 
 ```shell
 $ ./server -m shmid
-```
-
-We load up the menu of available items from a `diner_menu.txt` file in the `db` folder.
-
-To represent the menu items we use a custom C struct `Item`.
-
-```C
-typedef struct Item {
-    int menu_itemId;
-    char menu_desc[MAX_ITEM_DESC_LEN];
-    int menu_price;
-    int menu_min_time;
-    int menu_max_time;
-} Item;
 ```
 
 **3)   Cashier**
@@ -86,6 +74,91 @@ $ ./client -i itemId -e eatTime -m shmid
 ```
 -  `itemId` = id of item available in menu inside `db\diner_menu.txt`
 -  `eatTime` = maximum eating time of the client
+
+### Implementation
+
+The shared memory itself has the following structure, defined in `common.h`
+
+```C
+typedef struct Shared_memory_struct {
+    /* We will deploy three custom array based queues with a
+        maximum capacity of MAX_REST_QUEUE_CAP (The maximum num of clients the
+        restaurant can handle )
+        They are client cashier queue, client server queue and a client record queue */
+    int front_client_Q;
+    int rear_client_Q;
+    int size_client_Q;
+    struct Client_CashQ_item client_cash_queue[MAX_REST_QUEUE_CAP];
+
+    int front_server_Q;
+    int rear_server_Q;
+    int size_server_Q;
+    struct Client_ServQ_item client_server_queue[MAX_REST_QUEUE_CAP];
+
+    /* client_record_cur_size cannot exceed MAX_REST_QUEUE_CAP */
+    int client_record_cur_size;
+    struct Client_record_item client_record_queue[MAX_REST_QUEUE_CAP];
+
+    /* static constants */
+    int MaxCashiers;
+    int MaxPeople;
+
+    /* dynamic values */
+    pid_t server_pid; // pid of current server program
+    int totalCashierNum; // current number of cashieers
+    int totalClientNum; // current number of total clients
+    int totalClientOverall; // overall number of clients processed must be less than MaxPeople
+} Shared_memory_struct;
+```
+
+We load up the menu of available items from a `diner_menu.txt` file in the `db` folder.
+
+To represent the menu items we use a custom C struct `Item`.
+
+```C
+typedef struct Item {
+    int menu_itemId;
+    char menu_desc[MAX_ITEM_DESC_LEN];
+    int menu_price;
+    int menu_min_time;
+    int menu_max_time;
+} Item;
+```
+
+To represent the client queue with cashiers we use a custom C struct `Client_CashQ_item`.
+
+```C
+typedef struct Client_CashQ_item {
+    pid_t client_pid;
+    int client_id;
+    int menu_itemId;
+} Client_CashQ_item;
+```
+
+To represent the client queue with the server we use a custom C struct `Client_ServQ_item`.
+
+```C
+typedef struct Client_ServQ_item {
+    pid_t client_pid;
+    int client_id;
+    int menu_itemId;
+} Client_ServQ_item;
+```
+
+And to represent the struct for storing client records, we use another custom C struct `Client_record_item`.
+
+```C
+typedef struct Client_record_item {
+    pid_t clien_pid;
+    int client_id;
+    int menu_itemId;
+    char menu_desc[MAX_ITEM_DESC_LEN];
+    int menu_price;
+    int eat_time;
+    int time_with_cashier;
+    int time_with_server;
+} Client_record;
+```
 
 ### Author
 
