@@ -33,7 +33,13 @@ int main(int argc, char const *argv[]){
 	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
 
 	// Create a Item struct array to hold each item from diner menu
-	struct Item menu_items[num_menu_items(menu_file)];
+	int num_menu_items_temp = num_menu_items(menu_file);
+	/* Check if client ordered outside the existing menu items */
+	if (itemId > num_menu_items_temp) {
+		fprintf(stderr, "Item id(%li) exceeds the number of available items(%i) in menu.\n", itemId, num_menu_items_temp);
+		return 0;
+	}
+	struct Item menu_items[num_menu_items_temp];
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
 
@@ -67,41 +73,90 @@ int main(int argc, char const *argv[]){
 	////////////////////////////////////////////////////////////////////////////
 	////////////////////* Main section in Client begins *///////////////////////
 	////////////////////////////////////////////////////////////////////////////
+	int client_enter_restaurant = 1;
 
-	/* If the current num of clients being served in the restaurant has reached MaxPeople limit */
-	if (shared_mem_ptr->cur_client_num+1 > shared_mem_ptr->MaxPeople) {
-		printf("Client will not be joining restaurant queue as it is full right now\n");
-		/* Clean up normally */
-		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
-		return 0;
-	}
-
-	/* If the overall number of clients has exceeded the MAX_REST_QUEUE_CAP restaurant global capacity */
-	if (shared_mem_ptr->overall_client_num+1 > MAX_REST_QUEUE_CAP) {
-		printf("Client will leave because restaurant has reached its capacity and will not take any more clients today\n");
-		/* Clean up normally */
-		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
-		return 0;
-	}
-
-	/* if shutting down has been initiated by the coordinator */
-	if (shared_mem_ptr->initiate_shutdown == 1) {
-		printf("Client will leave because restaurant is going to shut down now\n");
-		/* Clean up normally */
-		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
-		return 0;
-	}
-
+	/* if restaurant is not properly staffed */
 	if (shared_mem_ptr->cur_cashier_num == 0 || shared_mem_ptr->server_pid == NO_SERVER_TEMP_PID) {
 		printf("Client will leave because restaurant is not properly staffed\n");
-		/* Clean up normally */
+		client_enter_restaurant = 0;
+	}
+	/* If the current num of clients being served in the restaurant has reached MaxPeople limit */
+	else if (shared_mem_ptr->cur_client_num+1 > shared_mem_ptr->MaxPeople) {
+		printf("Client will not be joining restaurant queue as it is full right now\n");
+		client_enter_restaurant = 0;
+	}
+	/* If the overall number of clients has exceeded the MAX_REST_QUEUE_CAP restaurant global capacity */
+	else if (shared_mem_ptr->overall_client_num+1 > MAX_REST_QUEUE_CAP) {
+		printf("Client will leave because restaurant has reached its capacity and will not take any more clients today\n");
+		client_enter_restaurant = 0;
+	}
+	/* if shutting down has been initiated by the coordinator */
+	else if (shared_mem_ptr->initiate_shutdown == 1) {
+		printf("Client will leave because restaurant is going to shut down now\n");
+		client_enter_restaurant = 0;
+	}
+
+
+	if (client_enter_restaurant) {
+		/* Client will not enter restaurant so clean up normally and exit */
 		all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 		return 0;
 	}
 
+	/* If control reaches here Now we can increment cur_client_num, overall_client_num
+			and add clients first to the client_cashier_queue */
+	////////* Acquire semaphore lock first before writing in shared memory *//////
+	if (sem_wait(shared_mem_write_sem) == -1) {																	//
+		perror("sem_wait()");																											//
+		exit(1);																																	//
+	}																																						//
+	shared_mem_ptr->cur_client_num += 1;																				//
+	shared_mem_ptr->overall_client_num += 1;																		//
+																																							//
+	/* release semaphore write lock after writing to shared memory */						//
+	if (sem_post(shared_mem_write_sem) == -1) {																	//
+		perror("sem_post()");																											//
+		exit(1);																																	//
+	}																																						//
+	//////////////////////////////////////////////////////////////////////////////
+
+	////////* Client locks the clientQS semaphore by calling wait on it */////////
+	//////////////////////////////////////////////////////////////////////////////
+	if (sem_wait(clientQS) == -1) {																							//
+		perror("sem_wait()");																											//
+		exit(1);																																	//
+	}																																						//
+
+	/* Client joins the client_cashier_queue */
+	enqueue_client_cashier_q(shared_mem_ptr, itemId, shared_mem_write_sem);
+
+	/* signal sempahore after adding itself to the client_cashier_queue */////////
+	if (sem_post(clientQS) == -1) {																							//
+		perror("sem_post()");																											//
+		exit(1);																																	//
+	}																																						//
+	//////////////////////////////////////////////////////////////////////////////
+
+	// IMPORTANT have to make the client stop here at this point before proceeding
+	/*TODO, get order with server*/
 
 
-	printf("Client has successfully ordered, dined and left the restaurant\n");
+	/* Decrement the cur_client_num counter before leaving */
+	////////* Acquire semaphore lock first before writing in shared memory *//////
+	if (sem_wait(shared_mem_write_sem) == -1) {																	//
+		perror("sem_wait()");																											//
+		exit(1);																																	//
+	}																																						//
+	shared_mem_ptr->cur_client_num -= 1;																				//
+																																							//
+	/* release semaphore write lock after writing to shared memory */						//
+	if (sem_post(shared_mem_write_sem) == -1) {																	//
+		perror("sem_post()");																											//
+		exit(1);																																	//
+	}																																						//
+	//////////////////////////////////////////////////////////////////////////////
+
+	printf("Client with ID %i has successfully ordered, dined and left the restaurant\n", getpid());
 	/* Clean up normally */
 	all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
 	return 0;
