@@ -163,6 +163,11 @@ int main(int argc, char const *argv[]){
 			}
 		}
 	}
+	/* client releases the lock on the cashier dequeue sem so cashier acan proceed and server other clients  */
+	if (sem_post(deq_c_block_sem) == -1) {															// wait (DeqC)
+		perror("sem_wait()");
+		exit(1);
+	}
 	sleep((shm_ptr->client_record_array[shm_ptr->cur_client_record_size]).time_with_cashier); /* client is being serve by the cashier */
 
 	/*TODO, get order with server*/
