@@ -117,8 +117,8 @@ int main(int argc, char const *argv[]) {
 			if (temp_sleep_time == 0) { // if the rand created a perfectly divisible num
 				temp_sleep_time = 1;
 			}
-			printf("No clients currently in cashier queue. Cashier taking a break for %i s\n",
-			       temp_sleep_time);
+			printf("No clients currently in cashier queue. Cashier with id %li taking a break for %i secs.\n",
+			       (long)getpid(), temp_sleep_time);
 			sleep(temp_sleep_time);
 		}
 
