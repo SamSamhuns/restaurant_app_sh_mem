@@ -134,10 +134,18 @@ int main(int argc, char const *argv[]) {
 				////////////////////////////////////////////////////////////////////////
 				TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");             //
 				// initiate shutdown for all processes and take no more clients		  //
-				shm_ptr->initiate_shutdown = 1;                               		  //
+				shm_ptr->initiate_shutdown = 1;                                       //
 				/* release semaphore write lock after writing to shared memory */     //
 				TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");             //                                                             //
 				////////////////////////////////////////////////////////////////////////
+				/* kill the server process if open */
+				if (kill( shm_ptr->server_pid, SIGTERM) == -1 ) {
+					fprintf(stderr, "Server process does not exist\n");
+				}
+				else {
+					fprintf(stdout, "Shutting Server with pid %li\n",
+					        (long)shm_ptr->server_pid);
+				}
 
 				///////////////////////*  GENERATE STATISTICS  *////////////////////////
 				/* create a new stats folder and write to a statistics file*/
@@ -155,32 +163,87 @@ int main(int argc, char const *argv[]) {
 				fprintf(f_stats, "Client_pid, item_ordered, money_spent($), eat_time, time_with_cashier, time_with_server, total_time_spent\n");
 
 				int cur_client_record_size = shm_ptr->cur_client_record_size;
+				float total_revenue_generated = 0;
+				int total_waiting_time_for_all_clients = 0;
+				/* A struct array to hold count of ordered items to evaluate the five most popular items
+				    The size is cur_client_record_size+1 as there need not be more types of food that what the
+				    clients ordered in our final statistic */
+				struct Menu_Count_Item menu_item_counts[(cur_client_record_size)+1];
+				int menu_item_counts_index = 0;
+
 				for (int i = 0; i < cur_client_record_size; i++) {
 					long client_pid = (long) ((shm_ptr->client_record_array[i]).client_pid);
 					char menu_desc[MAX_ITEM_DESC_LEN];
 					strcpy(menu_desc, ((shm_ptr->client_record_array[i]).menu_desc));
-					int menu_price = ((shm_ptr->client_record_array[i]).menu_price);
+					float menu_price = ((shm_ptr->client_record_array[i]).menu_price);
 					int eat_time = ((shm_ptr->client_record_array[i]).eat_time);
 					int time_with_cashier = ((shm_ptr->client_record_array[i]).time_with_cashier);
 					int time_with_server = ((shm_ptr->client_record_array[i]).time_with_server);
 					int total_time_spent = eat_time + time_with_cashier + time_with_server;
-					printf("Client with ID %li spent %i s with the cashier, %i s waiting for food and %i s eating %s. In total, they spent %i s in the restaurant and spent a total of %i dollars.\n",
+					total_waiting_time_for_all_clients += total_time_spent;
+					total_revenue_generated += menu_price;
+					printf("Client with ID %li spent %is with the cashier, %is waiting for food and %is eating %s. In total, they spent %is in the restaurant and spent a total of %.2f dollars.\n",
 					       client_pid, time_with_cashier, time_with_server, eat_time, menu_desc, total_time_spent, menu_price);
 
-					fprintf(f_stats, "%li, %s, %i, %i, %i, %i, %i\n",
+					fprintf(f_stats, "%li, %s, %.2f, %i, %i, %i, %i\n",
 					        client_pid, menu_desc, menu_price, eat_time, time_with_cashier, time_with_server, total_time_spent);
+
+					int item_found = 0;
+					for (int j = 0; j < (cur_client_record_size)+1; j++) {
+						if (strcmp(menu_desc, menu_item_counts[j].menu_desc) == 0) {
+							item_found = 1;
+							menu_item_counts[j].menu_total_price += menu_price;
+							menu_item_counts[j].menu_item_total_count += 1;
+							break;
+						}
+					}
+					/* if item does not already exist in the count struct array */
+					if (item_found == 0) {
+						strcpy(menu_item_counts[menu_item_counts_index].menu_desc, menu_desc);
+						menu_item_counts[menu_item_counts_index].menu_total_price = menu_price;
+						menu_item_counts[menu_item_counts_index].menu_item_total_count = 1;
+						menu_item_counts[menu_item_counts_index].chosen_for_top_five_already = 0;
+						menu_item_counts_index += 1;
+					}
 				}
+
+				/*Only generate the following statistics if at least one client has arrived */
+				if (cur_client_record_size > 0 ) {
+					/*Average waiting time for all clients after entering diner and leaving it */
+					printf("Average waiting time for all clients after entering diner and leaving it is %.2f\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
+					fprintf(f_stats,"Average waiting time for all clients after entering diner and leaving it is %.2f\n\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num));
+					/*Printing total number of clients visited and total revenue for the day*/
+					printf("Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is %.2f\n", shm_ptr->overall_client_num, total_revenue_generated);
+					/* Write the statistic to the file*/
+					fprintf(f_stats, "Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
+
+					printf("The most popular menu items with their respective revenue (Max five items)\n");
+					fprintf(f_stats, "The most popular menu items with their respective revenue (Max five items)\n");
+					/*Calculating top five most popular items*/
+					int cur_max = menu_item_counts[0].menu_item_total_count;
+					int top_most_item_index = 1; // denoting the position of popular item i.e. 1 = 1st most popular
+
+					while (top_most_item_index < 6 && top_most_item_index < cur_client_record_size+1) {
+						for (int i = 0; i < menu_item_counts_index; i++) {
+							if (cur_max < menu_item_counts[i].menu_item_total_count &&
+							    menu_item_counts[i].chosen_for_top_five_already == 0) {
+								menu_item_counts[i].chosen_for_top_five_already = 1;
+								printf("%i. %s ordered %i times with a total revenue of %.2f$.\n",
+								       top_most_item_index, menu_item_counts[i].menu_desc,
+								       menu_item_counts[i].menu_item_total_count, menu_item_counts[i].menu_total_price );
+								fprintf(f_stats, "%i. %s ordered %i times with a total revenue of %.2f$.\n",
+								        top_most_item_index, menu_item_counts[i].menu_desc,
+								        menu_item_counts[i].menu_item_total_count, menu_item_counts[i].menu_total_price );
+								top_most_item_index  += 1;
+							}
+						}
+					}
+				}
+
+
 				fclose(f_stats);
 				////////////////////////* NORMAL EXIT CLEAN UP*/////////////////////////
-				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  /////////////
-				/* kill the server process if open */
-				if (kill( shm_ptr->server_pid, SIGTERM) == -1 ) {
-				 fprintf(stderr, "Server process does not exist\n");
-				}
-				else {
-				 fprintf(stdout, "Shutting Server with pid %li\n",
-				         (long)shm_ptr->server_pid);
-				}
+				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  ////////////////////
 				//
 				// /* kill all cashier processes if open */
 				// int cur_cashier_num = shm_ptr->cur_cashier_num;
