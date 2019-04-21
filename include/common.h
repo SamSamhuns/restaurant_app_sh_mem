@@ -55,10 +55,17 @@
 typedef struct Item {
 	long menu_item_id;
 	char menu_desc[MAX_ITEM_DESC_LEN];
-	long menu_price;
+	float menu_price;
 	long menu_min_time;
 	long menu_max_time;
 } Item;
+
+typedef struct Menu_Count_Item {
+	char menu_desc[MAX_ITEM_DESC_LEN];
+	float menu_total_price;
+	int menu_item_total_count;
+	int chosen_for_top_five_already;
+} Menu_Count_Item;
 
 typedef struct Client_Queue_item {
 	pid_t client_pid;
@@ -70,7 +77,7 @@ typedef struct Client_record_item {
 	pid_t client_pid;
 	int menu_item_id;
 	char menu_desc[MAX_ITEM_DESC_LEN];
-	int menu_price;
+	float menu_price;
 	int eat_time;
 	int time_with_cashier;
 	int time_with_server;
