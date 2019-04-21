@@ -17,16 +17,9 @@
 #define SHM_WRITE_SEM "/shm_write_sem"          // semaphore to lock the sh memory during write operations
 #define SHUTDOWN_SEM "/shutdown_sem"            // semaphore to block or allow shutdown initiation of restaurant
 
-#define DEBUG 1 // Debug Mode
-
 /* Boilerplate code for uniform error checking
-   Example.  if(pipe(fd_pipe) == -1){
-                perror("could not pipe");
-                exit(1);
-            }
-   SHortened to:
-            TRY_AND_CATCH(pipe(fd_pipe), "pipe");
- */
+   Example: TRY_AND_CATCH_INT(pipe(fd_pipe), "pipe");
+*/
 #define TRY_AND_CATCH_INT(exp, err_cmd) do { \
 		if (exp < 0) { \
 			perror(err_cmd); \
@@ -60,20 +53,22 @@ typedef struct Item {
 	long menu_max_time;
 } Item;
 
+/* struct for representing unique menu items when calculating for the top five */
 typedef struct Menu_Count_Item {
 	char menu_desc[MAX_ITEM_DESC_LEN];
 	float menu_total_price;
 	int menu_item_total_count;
-	int chosen_for_top_five_already;
+	int chosen_for_top_five_already; // checks if menu item has already been considered as one of the maximums
 } Menu_Count_Item;
 
-typedef struct Client_Queue_item {
+/* struct for defining client queue item */
+typedef struct Client_Queue_Item {
 	pid_t client_pid;
 	int menu_item_id;
-} Client_Queue_item;
+} Client_Queue_Item;
 
 /* This is the main client record struct item */
-typedef struct Client_record_item {
+typedef struct Client_Record_Item {
 	pid_t client_pid;
 	int menu_item_id;
 	char menu_desc[MAX_ITEM_DESC_LEN];
@@ -82,7 +77,7 @@ typedef struct Client_record_item {
 	int time_with_cashier;
 	int time_with_server;
 	int total_time_spent;
-} Client_record;
+} Client_Record_Item;
 
 /*Creating a shared memory struct*/
 typedef struct Shared_memory_struct {
@@ -93,16 +88,16 @@ typedef struct Shared_memory_struct {
 	int front_client_Q;
 	int rear_client_Q;
 	int size_client_Q;
-	struct Client_Queue_item client_cashier_queue[MAX_REST_QUEUE_CAP];
+	struct Client_Queue_Item client_cashier_queue[MAX_REST_QUEUE_CAP];
 
 	int front_server_Q;
 	int rear_server_Q;
 	int size_server_Q;
-	struct Client_Queue_item client_server_queue[MAX_REST_QUEUE_CAP];
+	struct Client_Queue_Item client_server_queue[MAX_REST_QUEUE_CAP];
 
 	/* client_record_cur_size cannot exceed MAX_REST_QUEUE_CAP */
 	int cur_client_record_size;
-	struct Client_record_item client_record_array[MAX_REST_QUEUE_CAP];
+	struct Client_Record_Item client_record_array[MAX_REST_QUEUE_CAP];
 
 	/* static constants */
 	int MaxCashiers;
