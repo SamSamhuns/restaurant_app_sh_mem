@@ -13,6 +13,10 @@
 #include <semaphore.h>
 #include "common.h"
 
+/* Signal handlers for handling SIGTERM signal from coordinator process */
+void sigterm_handler(int sig_num);
+void sigint_handler(int sig_num);
+
 int main(int argc, char const *argv[]) {
 	/* cmd args validation
 	    ./server -m shmid */
@@ -21,6 +25,10 @@ int main(int argc, char const *argv[]) {
 		        "Incorrect args supplied. Usage: ./server -m shmid\n");
 		return 1;
 	}
+	/* Setting the SIGINT (Ctrl-C) signal handler to sigint_handler */
+	signal(SIGINT, sigint_handler);
+	/* Setting the SIGTERM signal handler to sigterm_handler */
+	signal(SIGTERM, sigterm_handler);
 	srand(time(NULL));     // seed the random number generator
 
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
@@ -58,10 +66,6 @@ int main(int argc, char const *argv[]) {
 		perror("mmap");
 		exit(1);
 	};
-
-	/* read from the shared memory object */
-	printf("DEBUG The maxCashier number is %i\n",  shm_ptr->MaxCashiers);
-	printf("DEBUG The maxPeople number is %i\n", shm_ptr->MaxPeople);
 
 	/* if shutting down has already been initiated by the coordinator */
 	if (shm_ptr->initiate_shutdown == 1) {
@@ -139,4 +143,22 @@ int main(int argc, char const *argv[]) {
 	/* WARNING Control should never reach here */
 	fprintf(stderr, "Error: CONTROL escaped normal loop\n");
 	return 1;
+}
+
+/* Signal Handler for SIGINT */
+void sigint_handler(int sig_num) {
+	/* Reset handler to catch SIGINT next time */
+	signal(SIGINT, sigint_handler);
+	printf("Server is terminating after getting a Ctrl+C SIGINT signal\n");
+	fflush(stdout);
+	exit(0);
+}
+
+/* Signal Handler for SIGTERM */
+void sigterm_handler(int sig_num) {
+	/* Reset handler to catch SIGTERM next time */
+	signal(SIGTERM, sigint_handler);
+	printf("Server with %li has received orders to shutdown from coordinator.\n", (long)getpid() );
+	fflush(stdout);
+	exit(0);
 }
