@@ -46,22 +46,14 @@ int main(int argc, char const *argv[]) {
 	struct Shared_memory_struct *shm_ptr;
 
 	/* named semaphores initialization */
-	sem_t *cashier_sem = sem_open(CASHIER_SEM,
-	                              O_CREAT | O_EXCL, 0666, 1); /* Init cashier_sem semaphore to 1 */
-	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM,
-	                                    O_CREAT | O_EXCL, 0666, 1); /* Init cashier_cli_q_sem sempaphore to 1 */
-	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM,
-	                                  O_CREAT | O_EXCL, 0666, 0); /* Init deq_c_block_sem semaphore to 0 */
-	sem_t *server_sem = sem_open(SERVER_SEM,
-	                             O_CREAT | O_EXCL, 0666, 0); /* Init server_sem sempaphore to 0 */
-	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM,
-	                                   O_CREAT | O_EXCL, 0666, 1); /* Init server_cli_q_sem semaphore to 1 */
-	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM,
-	                                  O_CREAT | O_EXCL, 0666, 0); /* Init deq_s_block_sem sempaphore to 0 */
-	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM,
-	                                O_CREAT | O_EXCL, 0666, 1);        /* Init shm_write_sem sempaphore to 1 */
-	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM,
-	                               O_CREAT | O_EXCL, 0666, 0);        /* Init shutdown_sem sempaphore to 0 */
+	sem_t *cashier_sem = sem_open(CASHIER_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init cashier_sem semaphore to 1 */
+	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init cashier_cli_q_sem sempaphore to 1 */
+	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init deq_c_block_sem semaphore to 0 */
+	sem_t *server_sem = sem_open(SERVER_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init server_sem sempaphore to 0 */
+	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init server_cli_q_sem semaphore to 1 */
+	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init deq_s_block_sem sempaphore to 0 */
+	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM, O_CREAT | O_EXCL, 0666, 1);        /* Init shm_write_sem sempaphore to 1 */
+	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM, O_CREAT | O_EXCL, 0666, 0);        /* Init shutdown_sem sempaphore to 0 */
 	TRY_AND_CATCH_SEM(cashier_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(cashier_cli_q_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(deq_c_block_sem, "sem_open()");
@@ -90,8 +82,8 @@ int main(int argc, char const *argv[]) {
 
 	/* write to the shared memory object */
 
-	///////////////* Acquire semaphore lock first before writing *////////////////
-	//////////////////////////////////////////////////////////////////////////////
+	///////////////* Acquire semaphore lock first before writing *//////////////
+	////////////////////////////////////////////////////////////////////////////
 	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 	shm_ptr->front_client_Q = -1;
 	shm_ptr->rear_client_Q = -1;
@@ -109,7 +101,7 @@ int main(int argc, char const *argv[]) {
 	shm_ptr->overall_client_num = 0;
 	/* release semaphore write lock after writing to shared memory */
 	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
-	//////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
 
 	sleep(12); // To give enough time for clients to arrive in the beginning
 	// Check if any client processes are in the Restaurant, if no signal shutdown semaphore
@@ -169,7 +161,7 @@ int main(int argc, char const *argv[]) {
 				    The size is cur_client_record_size+1 as there need not be more types of food that what the
 				    clients ordered in our final statistic */
 				struct Menu_Count_Item menu_item_counts[(cur_client_record_size)+1];
-				int menu_item_counts_index = 0;
+				int menu_item_counts_index = 0; // tracks how many unique items have been added to menu_item_counts array
 
 				for (int i = 0; i < cur_client_record_size; i++) {
 					long client_pid = (long) ((shm_ptr->client_record_array[i]).client_pid);
@@ -182,13 +174,14 @@ int main(int argc, char const *argv[]) {
 					int total_time_spent = eat_time + time_with_cashier + time_with_server;
 					total_waiting_time_for_all_clients += total_time_spent;
 					total_revenue_generated += menu_price;
-					printf("Client with ID %li spent %is with the cashier, %is waiting for food and %is eating %s. In total, they spent %is in the restaurant and spent a total of %.2f dollars.\n",
+					printf("Client with ID %li spent %is with the cashier, %is waiting for food and %is eating %s. In total, they spent %is in the restaurant and spent a total of $ %.2f.\n",
 					       client_pid, time_with_cashier, time_with_server, eat_time, menu_desc, total_time_spent, menu_price);
 
 					fprintf(f_stats, "%li, %s, %.2f, %i, %i, %i, %i\n",
 					        client_pid, menu_desc, menu_price, eat_time, time_with_cashier, time_with_server, total_time_spent);
 
 					int item_found = 0;
+					/* Check if the item exists in our record array */
 					for (int j = 0; j < (cur_client_record_size)+1; j++) {
 						if (strcmp(menu_desc, menu_item_counts[j].menu_desc) == 0) {
 							item_found = 1;
@@ -210,53 +203,41 @@ int main(int argc, char const *argv[]) {
 				/*Only generate the following statistics if at least one client has arrived */
 				if (cur_client_record_size > 0 ) {
 					/*Average waiting time for all clients after entering diner and leaving it */
-					printf("Average waiting time for all clients after entering diner and leaving it is %.2f\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
-					fprintf(f_stats,"Average waiting time for all clients after entering diner and leaving it is %.2f\n\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num));
+					printf("Average waiting time for all clients after entering the diner toleaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
+					fprintf(f_stats,"Average waiting time for all clients after entering diner and leaving it is %.2fs\n\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num));
 					/*Printing total number of clients visited and total revenue for the day*/
-					printf("Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is %.2f\n", shm_ptr->overall_client_num, total_revenue_generated);
+					printf("Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is $ %.2f\n", shm_ptr->overall_client_num, total_revenue_generated);
 					/* Write the statistic to the file*/
-					fprintf(f_stats, "Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
+					fprintf(f_stats, "Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is $ %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
 
 					printf("The most popular menu items with their respective revenue (Max five items)\n");
 					fprintf(f_stats, "The most popular menu items with their respective revenue (Max five items)\n");
 					/*Calculating top five most popular items*/
 					int cur_max = menu_item_counts[0].menu_item_total_count;
+					int cur_max_index = 0;
 					int top_most_item_index = 1; // denoting the position of popular item i.e. 1 = 1st most popular
-
-					while (top_most_item_index < 6 && top_most_item_index < cur_client_record_size+1) {
+					while (top_most_item_index < 6 && top_most_item_index < menu_item_counts_index+1) {
 						for (int i = 0; i < menu_item_counts_index; i++) {
-							if (cur_max < menu_item_counts[i].menu_item_total_count &&
+							if (cur_max <= menu_item_counts[i].menu_item_total_count &&
 							    menu_item_counts[i].chosen_for_top_five_already == 0) {
-								menu_item_counts[i].chosen_for_top_five_already = 1;
-								printf("%i. %s ordered %i times with a total revenue of %.2f$.\n",
-								       top_most_item_index, menu_item_counts[i].menu_desc,
-								       menu_item_counts[i].menu_item_total_count, menu_item_counts[i].menu_total_price );
-								fprintf(f_stats, "%i. %s ordered %i times with a total revenue of %.2f$.\n",
-								        top_most_item_index, menu_item_counts[i].menu_desc,
-								        menu_item_counts[i].menu_item_total_count, menu_item_counts[i].menu_total_price );
-								top_most_item_index  += 1;
+								cur_max_index = i;
+								cur_max = menu_item_counts[i].menu_item_total_count;
 							}
 						}
+						menu_item_counts[cur_max_index].chosen_for_top_five_already = 1;
+						cur_max = 0;
+
+						printf("%i. %s ordered %i times with a total revenue of $ %.2f.\n",
+						       top_most_item_index, menu_item_counts[cur_max_index].menu_desc,
+						       menu_item_counts[cur_max_index].menu_item_total_count, menu_item_counts[cur_max_index].menu_total_price );
+						fprintf(f_stats, "%i. %s ordered %i times with a total revenue of $ %.2f.\n",
+						        top_most_item_index, menu_item_counts[cur_max_index].menu_desc,
+						        menu_item_counts[cur_max_index].menu_item_total_count, menu_item_counts[cur_max_index].menu_total_price );
+						top_most_item_index  += 1;
 					}
 				}
-
-
 				fclose(f_stats);
 				////////////////////////* NORMAL EXIT CLEAN UP*/////////////////////////
-				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  ////////////////////
-				//
-				// /* kill all cashier processes if open */
-				// int cur_cashier_num = shm_ptr->cur_cashier_num;
-				// for (int i = 0; i < cur_cashier_num; i++) {
-				//  pid_t cashier_pid = shm_ptr->cashier_pid_array[i];
-				//  printf("Shutting cashier with pid %li\n", (long)cashier_pid );
-				//  if (kill( cashier_pid, SIGTERM) == -1 ) {
-				//      fprintf(stderr, "Cashier with pid %li does not exist\n",
-				//              (long)cashier_pid);
-				//  };
-				// }
-				////////////////////////////////////////////////////////////////////////
-
 				// close all sems and shm
 				all_exit_cleanup(cashier_sem, cashier_cli_q_sem, deq_c_block_sem, server_sem,
 				                 server_cli_q_sem, deq_s_block_sem, shm_write_sem, shutdown_sem,
