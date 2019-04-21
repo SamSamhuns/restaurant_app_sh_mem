@@ -65,10 +65,6 @@ int main(int argc, char const *argv[]) {
 		exit(1);
 	};
 
-	/* read from the shared memory object */
-	printf("DEBUG The maxCashier number is %i\n",  shm_ptr->MaxCashiers);
-	printf("DEBUG The maxPeople number is %i\n", shm_ptr->MaxPeople);
-
 	/* if shutting down has already been initiated by the coordinator */
 	if (shm_ptr->initiate_shutdown == 1) {
 		/* Clean up normally */
