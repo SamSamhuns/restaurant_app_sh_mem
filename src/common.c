@@ -51,7 +51,7 @@ void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]) {
 	while (fgets(temp_loop_holder, MAX_ITEM_DESC_LEN, menu_file)) {
 		menu_items[menu_iter].menu_item_id = strtol(strtok(temp_loop_holder,","), NULL, 10);
 		strcpy(menu_items[menu_iter].menu_desc, strtok(NULL, ","));
-		menu_items[menu_iter].menu_price = strtol(strtok(NULL,","), NULL, 10);
+		menu_items[menu_iter].menu_price = strtof(strtok(NULL,","), NULL);
 		menu_items[menu_iter].menu_min_time = strtol(strtok(NULL,","), NULL, 10);
 		menu_items[menu_iter].menu_max_time = strtol(strtok(NULL,","), NULL, 10);
 		menu_iter += 1;
