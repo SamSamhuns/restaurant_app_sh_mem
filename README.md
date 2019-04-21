@@ -2,6 +2,8 @@
 
 This application demonstrates the concept of IPC, POSIX shared memory and semaphores. Real world applications not implemented in any way like this.
 
+<img src="img/restaurant.png">
+
 ## Build (Linux)
 
 ```shell
@@ -76,6 +78,18 @@ $ ./client -i itemId -e eatTime -m shmid
 -  `eatTime` = maximum eating time of the client
 
 ### Implementation
+
+All the participating programs run on the following logic:
+
+    /*Coordinator*/
+
+    /*Cashier*/
+
+    /*Client with Cashier*/
+
+    /*Server*/
+
+    /*Client with Server*/
 
 The shared memory itself has the following structure, defined in `common.h`
 
