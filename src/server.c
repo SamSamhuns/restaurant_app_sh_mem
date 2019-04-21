@@ -1,3 +1,4 @@
+#include <time.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
@@ -20,12 +21,14 @@ int main(int argc, char const *argv[]) {
 		        "Incorrect args supplied. Usage: ./server -m shmid\n");
 		return 1;
 	}
+	srand(time(NULL));     // seed the random number generator
 
 	FILE *menu_file = fopen("./db/diner_menu.txt", "r");
 	TRY_AND_CATCH_NULL(menu_file, "fopen_error");
 
 	// Create a Item struct array to hold each item from diner menu
-	struct Item menu_items[num_menu_items(menu_file)];
+	int num_menu_items_temp = num_menu_items(menu_file);
+	struct Item menu_items[num_menu_items_temp];
 	load_item_struct_arr(menu_file, menu_items);
 	fclose(menu_file);
 
@@ -63,27 +66,21 @@ int main(int argc, char const *argv[]) {
 	/* if shutting down has already been initiated by the coordinator */
 	if (shm_ptr->initiate_shutdown == 1) {
 		/* Clean up normally */
-		server_exit_cleanup(server_sem,
-							server_cli_q_sem,
-							deq_s_block_sem,
-							shm_write_sem,
-							shutdown_sem,
-							shm_ptr,
-							&shm_fd);
+		server_exit_cleanup(server_sem, server_cli_q_sem, deq_s_block_sem, shm_write_sem,
+		                    shutdown_sem, shm_ptr, &shm_fd);
 		return 0;
 	}
 	/* Check if more than one servers are being tried to be initiated */
 	/* add Server pid to the server pid var in shared mem */
 	if (shm_ptr->server_pid == NO_SERVER_TEMP_PID) {
 		////////* Acquire semaphore lock first before writing in shared memory *////
-		if (sem_wait(shm_write_sem) == -1) {                               //
+		if (sem_wait(shm_write_sem) == -1) {                                      //
 			perror("sem_wait()");                                                 //
 			exit(1);                                                              //
 		}                                                                         //
-		shm_ptr->server_pid = getpid();                                    //
-		//
+		shm_ptr->server_pid = getpid();                                           //
 		/* release semaphore write lock after writing to shared memory */         //
-		if (sem_post(shm_write_sem) == -1) {                               //
+		if (sem_post(shm_write_sem) == -1) {                                      //
 			perror("sem_post()");                                                 //
 			exit(1);                                                              //
 		}                                                                         //
@@ -93,13 +90,8 @@ int main(int argc, char const *argv[]) {
 	else {
 		printf("Only one server is allowed in the restaurant\n");
 		/* Clean up normally */
-		server_exit_cleanup(server_sem,
-							server_cli_q_sem,
-							deq_s_block_sem,
-							shm_write_sem,
-							shutdown_sem,
-							shm_ptr,
-							&shm_fd);
+		server_exit_cleanup(server_sem, server_cli_q_sem, deq_s_block_sem, shm_write_sem,
+		                    shutdown_sem, shm_ptr, &shm_fd);
 		return 0;
 	}
 	////////////////////////////////////////////////////////////////////////////
@@ -110,19 +102,53 @@ int main(int argc, char const *argv[]) {
 		/* if shutting down has been initiated by the coordinator */
 		if (shm_ptr->initiate_shutdown == 1) {
 			/* Clean up normally */
-			server_exit_cleanup(server_sem,
-			                    server_cli_q_sem,
-			                    deq_s_block_sem,
-			                    shm_write_sem,
-			                    shutdown_sem,
-			                    shm_ptr,
-			                    &shm_fd);
+			server_exit_cleanup(server_sem, server_cli_q_sem, deq_s_block_sem, shm_write_sem,
+			                    shutdown_sem, shm_ptr, &shm_fd);
 			return 0;
 		}
 
+		/* Server will wait for a client to reach out for order */              // wait ( Ses )
+		if (sem_wait(server_sem) == -1) {
+			perror("sem_wait()");
+			exit(1);
+		}
+		/* write time spent with client on the shared memory segment */
+		/* Check the client_record_array for pid of current client process
+		    to write the allocated serving time to the
+		    time_with_server attrb */
+		int temp_server_cli_serving_time = 0;
+		for (int i = 0; i < shm_ptr->cur_client_record_size; i++) {
+			if ((shm_ptr->client_record_array[i]).client_pid == (shm_ptr->client_server_queue[shm_ptr->front_server_Q]).client_pid ) {
+
+				int menu_item_id = ((shm_ptr->client_server_queue[shm_ptr->front_server_Q]).menu_item_id )-1; // sub 1 to match item order in file
+				int menu_max_time = 1;
+				int menu_min_time = 1;
+
+				/* loop through the menu_items struct to find the ordered item */
+				for (int j = 0; j < num_menu_items_temp; j++) {
+					if (menu_item_id == menu_items[j].menu_item_id) {
+						menu_max_time = menu_items[j].menu_max_time;
+						menu_min_time = menu_items[j].menu_min_time;
+						break;
+					}
+				}
+
+				/* Choose a serving time between min and max serving time of food ordered */
+				temp_server_cli_serving_time = rand() % (((menu_max_time-menu_min_time)+1) + menu_min_time);
+				(shm_ptr->client_record_array[i]).time_with_server = temp_server_cli_serving_time;
+				printf("Currently serving Client %li, %s which will be ready in %i s.\n",
+					(long)(shm_ptr->client_record_array[i]).client_pid, menu_items[menu_item_id].menu_desc, temp_server_cli_serving_time);
+				break;
+			}
+		}
 
 
-		/*TODO handle the server queue */
+		/* Server will allow client to leave after the serving has been done
+		    and dequeue the client from the client_server_queue */
+		if (sem_post(deq_s_block_sem) == -1) {									// signal ( DeqS )
+			perror("sem_wait()");
+			exit(1);
+		}
 	}
 	// exit of main while loop
 
