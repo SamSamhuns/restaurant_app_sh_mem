@@ -159,13 +159,13 @@ int main(int argc, char const *argv[]){
 
 
 
-	/* Eat at the restaurant */
+	/* Eat at the restaurant for a time in the interval [1...eatTime]*/
 	int temp_sleep_time = rand() % (((int)eatTime)+1);
 	if (temp_sleep_time == 0) { // if the rand created a perfectly divisible num
 		temp_sleep_time = 1;
 	}
 	printf("Client %li is eating for %i s before leaving\n", (long)getpid(), temp_sleep_time );
-	/* setting the eat tiem for the client */
+	/* setting the eat time for the client */
 	for (int i = 0; i < shared_mem_ptr->cur_client_record_size; i++) {
 		if ( (shared_mem_ptr->client_record_array[i]).client_pid == getpid() ) {
 			(shared_mem_ptr->client_record_array[i]).eat_time = temp_sleep_time;

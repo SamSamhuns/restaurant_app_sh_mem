@@ -98,6 +98,8 @@ int main(int argc, char const *argv[]) {
 			return 0;
 		}
 
+		
+
 		/*TODO handle the server queue */
 	}
 	// exit of main while loop

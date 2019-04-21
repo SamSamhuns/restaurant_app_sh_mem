@@ -116,7 +116,7 @@ int main(int argc, char const *argv[]) {
 			exit(1);
 		}
 		/* If there are no clients currently waiting to be processed in the cashier client queue
-		   take a break */
+		   take a break in the interval [1...breakTime] */
 		if (shared_mem_ptr->size_client_Q <= 0) {
 			/* Cashier releases cashierS lock */                                         // Signal (CaS)
 			if (sem_post(cashierS) == -1) {
@@ -160,7 +160,7 @@ int main(int argc, char const *argv[]) {
 			/* save price of item ordered */
 			(shared_mem_ptr->client_record_array[cli_record_index]).menu_price = menu_items[menu_item_id].menu_price;
 
-			/* save time with cashier */
+			/* Generate a random time to serve the client in the interval [1...serviceTime] */
 			int temp_sleep_time = rand() % (((int)serviceTime)+1);
 			if (temp_sleep_time == 0) {     // if the rand created a perfectly divisible num
 				temp_sleep_time = 1;
@@ -198,10 +198,7 @@ int main(int argc, char const *argv[]) {
 			}
 			sleep(temp_sleep_time); /* cashier serves client */
 		}
-
-
 		////////////////////////////////////////////////////////////////////////////
-
 	}
 	// exit of main while loop
 	/* WARNING Control should never reach here */

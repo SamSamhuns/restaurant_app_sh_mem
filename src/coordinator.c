@@ -123,17 +123,17 @@ int main(int argc, char const *argv[]) {
 
 				////* Acquire semaphore lock first before writing in shared memory *////
 				////////////////////////////////////////////////////////////////////////
-				if (sem_wait(shared_mem_write_sem) == -1) {                                                     //
-					perror("sem_wait()");                                                                                               //
-					exit(1);                                                                                                                        //
-				}                                                                                                                                           //
-				// initiate shutdown for all processes and take no more clients				//																													//
-				shared_mem_ptr->initiate_shutdown = 1;                                                              //																		//
-				/* release semaphore write lock after writing to shared memory */           //
-				if (sem_post(shared_mem_write_sem) == -1) {                                                     //
-					perror("sem_post()");                                                                                               //
-					exit(1);                                                                                                                        //
-				}                                                                                                                                           //
+				if (sem_wait(shared_mem_write_sem) == -1) {                           //
+					perror("sem_wait()");                                             //
+					exit(1);                                                          //
+				}                                                                     //
+				// initiate shutdown for all processes and take no more clients		  //
+				shared_mem_ptr->initiate_shutdown = 1;                                //
+				/* release semaphore write lock after writing to shared memory */     //
+				if (sem_post(shared_mem_write_sem) == -1) {                           //
+					perror("sem_post()");                                             //
+					exit(1);                                                          //
+				}                                                                     //
 				////////////////////////////////////////////////////////////////////////
 
 				///////////////////////*  GENERATE STATISTICS  *////////////////////////
