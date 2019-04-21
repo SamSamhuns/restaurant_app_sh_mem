@@ -188,12 +188,16 @@ int main(int argc, char const *argv[]) {
 				exit(1);
 			}
 			////////////////////////////////////////////////////////////////////////////
-
+			/* wait on cashier dequeue sem so that client has time to get its serving wait tiem */
+			if (sem_wait(deq_c_block_sem) == -1) {											// wait (DeqC)
+				perror("sem_wait()");
+				exit(1);
+			}
 			/*remove the client from the queue after writing its information to the
 			    client client_record_array */
 			dequeue_client_cashier_q(shm_ptr, shm_write_sem);
 
-			/* Cashier releases the cashier_sem lock */                             // Signal (CaS)
+			/* Cashier releases the cashier_sem lock */                            		   // Signal (CaS)
 			if (sem_post(cashier_sem) == -1) {
 				perror("sem_post()");
 				exit(1);
