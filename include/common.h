@@ -9,6 +9,10 @@
 #define NO_SERVER_TEMP_PID 1000000 // place holder server_pid
 #define CASHIER_SEM "/cashier_sem" // named cashier semaphore
 #define CLIENTQ_SEM "/clientQ_sem" // amed client queue semaphore
+#define CQ_DEQUEUE_BLOCK_SEM "/cq_dequeue_block_sem" // to block cashier from dequeueing before client reads its PID from cashier_pid_queue
+#define SERVER_SEM "/server_sem"
+#define CLIENT_SERVER_Q_SEM "/client_server_q_sem"
+#define SQ_DEQUEUE_BLOCK_SEM "/sq_dequeue_block_sem" // to block client from dequeueing before client reads its PID from client_server_queue
 #define SHARED_MEM_WR_LOCK_SEM "/shared_mem_write_sem" // semaphore to lock the write segment
 
 #define DEBUG 1 // Debug Mode
