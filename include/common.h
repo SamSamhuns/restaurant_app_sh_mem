@@ -7,13 +7,15 @@
 #define MAX_CASHIER_CAP 50 // Global max on number of cashiers despite another limit on number of cashiers
 #define SHMID "0001" // shared memory id
 #define NO_SERVER_TEMP_PID 1000000 // place holder server_pid
-#define CASHIER_SEM "/cashier_sem" // named cashier semaphore
-#define CLIENTQ_SEM "/clientQ_sem" // amed client queue semaphore
-#define CQ_DEQUEUE_BLOCK_SEM "/cq_dequeue_block_sem" // to block cashier from dequeueing before client reads its PID from cashier_pid_queue
-#define SERVER_SEM "/server_sem"
-#define CLIENT_SERVER_Q_SEM "/client_server_q_sem"
-#define SQ_DEQUEUE_BLOCK_SEM "/sq_dequeue_block_sem" // to block client from dequeueing before client reads its PID from client_server_queue
-#define SHARED_MEM_WR_LOCK_SEM "/shared_mem_write_sem" // semaphore to lock the write segment
+/*defining all semaphores */
+#define CASHIER_SEM "/cashier_sem" 				// named cashier semaphore
+#define CASHIER_CLI_Q_SEM "/cashier_cli_q_sem"  // named cashier client queue semaphore
+#define DEQ_C_BLOCK_SEM "/deq_c_block_sem" 		// to block cashier from dequeueing before client reads its PID from cashier_pid_queue
+#define SERVER_SEM "/server_sem" 				// named server semaphore
+#define SERVER_CLI_Q_SEM "/server_cli_q_sem"	// named serverclient queue semaphore
+#define DEQ_S_BLOCK_SEM "/deq_s_block_sem" 		// to block client from dequeueing before client reads its PID from client_server_queue
+#define SHM_WRITE_SEM "/shm_write_sem" 			// semaphore to lock the sh memory during write operations
+#define SHUTDOWN_SEM "/shutdown_sem"			// semaphore to block or allow shutdown initiation of restaurant
 
 #define DEBUG 1 // Debug Mode
 
@@ -127,31 +129,31 @@ void coordinator_only_exit_cleanup ();
 /* Normal exit clean up call for all processes */
 void all_exit_cleanup (sem_t *clientQS,
                        sem_t *cashierS,
-                       sem_t *shared_mem_write_sem,
-                       struct Shared_memory_struct *shared_mem_ptr,
+                       sem_t *shm_write_sem,
+                       struct Shared_memory_struct *shm_ptr,
                        int *shm_fd);
 
 /* func to enqueue client pid in cashier FIFO queue
     This function automatically does a shared mem write semaphore lock
     IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
-void enqueue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr,
-                              long menu_item_id, sem_t *shared_mem_write_sem);
+void enqueue_client_cashier_q(struct Shared_memory_struct *shm_ptr,
+                              long menu_item_id, sem_t *shm_write_sem);
 
 /* func to enqueue client pid in server FIFO queue
    This function automatically does a shared mem write semaphore lock
    IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
-void enqueue_client_server_q(struct Shared_memory_struct *shared_mem_ptr,
-                             long menu_item_id, sem_t *shared_mem_write_sem);
+void enqueue_client_server_q(struct Shared_memory_struct *shm_ptr,
+                             long menu_item_id, sem_t *shm_write_sem);
 
 /* func to dequeue client pid item in client FIFO queue
    This function automatically does a shared mem write semaphore lock
    IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
-void dequeue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem);
+void dequeue_client_cashier_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_write_sem);
 
 /* func to dequeue client pid item in server FIFO queue
    This function automatically does a shared mem write semaphore lock
    IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
-void dequeue_client_server_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem);
+void dequeue_client_server_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_write_sem);
 
 
 #endif
