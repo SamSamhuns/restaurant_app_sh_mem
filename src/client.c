@@ -229,7 +229,10 @@ int main(int argc, char const *argv[]){
 	/* release semaphore write lock after writing to shared memory */			//
 	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");					//
 	//////////////////////////////////////////////////////////////////////////////
-
+	/* No clients are present in the restaurant as of now */
+	if (shm_ptr->cur_client_num == 0) {
+		TRY_AND_CATCH_INT(sem_post(shutdown_sem), "sem_post()");
+	}
 	printf("Client with ID %i has successfully ordered, dined and left the restaurant\n", getpid());
 	/* Clean up normally */
 	all_exit_cleanup(cashier_sem, cashier_cli_q_sem, deq_c_block_sem, server_sem,
