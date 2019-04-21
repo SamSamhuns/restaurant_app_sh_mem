@@ -51,17 +51,17 @@ int main(int argc, char const *argv[]) {
 	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM,
 	                                    O_CREAT | O_EXCL, 0666, 1); /* Init cashier_cli_q_sem sempaphore to 1 */
 	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM,
-	                                  O_CREAT | O_EXCL, 0666, 0); /* Init cashier queue block semaphore to 0 */
+	                                  O_CREAT | O_EXCL, 0666, 0); /* Init deq_c_block_sem semaphore to 0 */
 	sem_t *server_sem = sem_open(SERVER_SEM,
-	                             O_CREAT | O_EXCL, 0666, 0); /* Init server sem sempaphore to 1 */
+	                             O_CREAT | O_EXCL, 0666, 0); /* Init server_sem sempaphore to 1 */
 	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM,
-	                                   O_CREAT | O_EXCL, 0666, 1); /* Init client server q semaphore to 1 */
+	                                   O_CREAT | O_EXCL, 0666, 1); /* Init server_cli_q_sem semaphore to 1 */
 	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM,
-	                                  O_CREAT | O_EXCL, 0666, 0); /* Init server queue block sempaphore to 0 */
+	                                  O_CREAT | O_EXCL, 0666, 0); /* Init deq_s_block_sem sempaphore to 0 */
 	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM,
-	                                O_CREAT | O_EXCL, 0666, 1);        /* Init shared mem write sempaphore to 1 */
+	                                O_CREAT | O_EXCL, 0666, 1);        /* Init shm_write_sem sempaphore to 1 */
 	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM,
-	                               O_CREAT | O_EXCL, 0666, 1);        /* Init shared mem write sempaphore to 1 */
+	                               O_CREAT | O_EXCL, 0666, 1);        /* Init shutdown_sem sempaphore to 1 */
 	TRY_AND_CATCH_SEM(cashier_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(cashier_cli_q_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(deq_c_block_sem, "sem_open()");
