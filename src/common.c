@@ -160,10 +160,7 @@ void enqueue_client_cashier_q(struct Shared_memory_struct *shm_ptr,
                               long menu_item_id, sem_t *shm_write_sem) {
 	////////* Acquire semaphore lock first before writing in shared memory *////
 	////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(shm_write_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 	/* if no clients have been processed before in the cashier queue */
 	if (shm_ptr->size_client_Q < 0) {
 		shm_ptr->client_cashier_queue[0].client_pid = getpid();
@@ -181,10 +178,7 @@ void enqueue_client_cashier_q(struct Shared_memory_struct *shm_ptr,
 		shm_ptr->size_client_Q++;       // size ++
 	}
 	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 	///////////////////////////////////////////////////////////////////////////
 }
 
@@ -195,10 +189,7 @@ void enqueue_client_server_q(struct Shared_memory_struct *shm_ptr,
                              long menu_item_id, sem_t *shm_write_sem) {
 	////////* Acquire semaphore lock first before writing in shared memory *////
 	////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(shm_write_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 	/* if no clients have been processed before in the cashier queue */
 	if (shm_ptr->size_server_Q < 0) {
 		/* Add client pid and order info to queue */
@@ -218,10 +209,7 @@ void enqueue_client_server_q(struct Shared_memory_struct *shm_ptr,
 		shm_ptr->size_server_Q++;       // size ++
 	}
 	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 	///////////////////////////////////////////////////////////////////////////
 }
 
@@ -231,10 +219,7 @@ void enqueue_client_server_q(struct Shared_memory_struct *shm_ptr,
 void dequeue_client_cashier_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_write_sem) {
 	////////* Acquire semaphore lock first before writing in shared memory *////
 	////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(shm_write_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 	if (shm_ptr->size_client_Q > 0) {
 		shm_ptr->size_client_Q--;      // size --
 		shm_ptr->front_client_Q++;      // front ++
@@ -243,10 +228,7 @@ void dequeue_client_cashier_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_w
 		fprintf(stderr, "Cashier client queue is empty. Cannot dequeue\n");
 	}
 	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 	///////////////////////////////////////////////////////////////////////////
 }
 
@@ -256,10 +238,7 @@ void dequeue_client_cashier_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_w
 void dequeue_client_server_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_write_sem) {
 	////////* Acquire semaphore lock first before writing in shared memory *////
 	////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(shm_write_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 	if (shm_ptr->size_server_Q > 0) {
 		shm_ptr->size_server_Q--;  // size --
 		shm_ptr->front_server_Q++;  // front ++
@@ -268,9 +247,6 @@ void dequeue_client_server_q(struct Shared_memory_struct *shm_ptr, sem_t *shm_wr
 		fprintf(stderr, "Server client queue is empty. Cannot dequeue\n");
 	}
 	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 	///////////////////////////////////////////////////////////////////////////
 }
