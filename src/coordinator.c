@@ -92,10 +92,7 @@ int main(int argc, char const *argv[]) {
 
 	///////////////* Acquire semaphore lock first before writing *////////////////
 	//////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(shm_write_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 	shm_ptr->front_client_Q = -1;
 	shm_ptr->rear_client_Q = -1;
 	shm_ptr->size_client_Q = -1;
@@ -110,19 +107,11 @@ int main(int argc, char const *argv[]) {
 	shm_ptr->cur_cashier_num = 0;
 	shm_ptr->cur_client_num = 0;
 	shm_ptr->overall_client_num = 0;
-
 	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_post(deq_s_block_sem), "sem_post()");
 	//////////////////////////////////////////////////////////////////////////////
 
-	int cc;
-	printf("REMOVE LATER Scanning an int for TEMP SYNCHRONIZATION:\n");
-	scanf("%d",&cc);
-
-	sleep(2); // To give enough time for clients to arrive in the beginning
+	sleep(12); // To give enough time for clients to arrive in the beginning
 
 	////////////////////////////////////////////////////////////////////////////
 	/////////////////* Main while loop in coordinator begins *//////////////////
@@ -138,17 +127,11 @@ int main(int argc, char const *argv[]) {
 
 				////* Acquire semaphore lock first before writing in shared memory *////
 				////////////////////////////////////////////////////////////////////////
-				if (sem_wait(shm_write_sem) == -1) {                           //
-					perror("sem_wait()");                                             //
-					exit(1);                                                          //
-				}                                                                     //
+				TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");             //
 				// initiate shutdown for all processes and take no more clients		  //
-				shm_ptr->initiate_shutdown = 1;                                //
+				shm_ptr->initiate_shutdown = 1;                               		  //
 				/* release semaphore write lock after writing to shared memory */     //
-				if (sem_post(shm_write_sem) == -1) {                           //
-					perror("sem_post()");                                             //
-					exit(1);                                                          //
-				}                                                                     //
+				TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");             //                                                             //
 				////////////////////////////////////////////////////////////////////////
 
 				///////////////////////*  GENERATE STATISTICS  *////////////////////////
@@ -186,13 +169,13 @@ int main(int argc, char const *argv[]) {
 				////////////////////////* NORMAL EXIT CLEAN UP*/////////////////////////
 				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  /////////////
 				/* kill the server process if open */
-				// if (kill( shm_ptr->server_pid, SIGTERM) == -1 ) {
-				//  fprintf(stderr, "Server process does not exist\n");
-				// }
-				// else {
-				//  fprintf(stdout, "Shutting Server with pid %li\n",
-				//          (long)shm_ptr->server_pid);
-				// }
+				if (kill( shm_ptr->server_pid, SIGTERM) == -1 ) {
+				 fprintf(stderr, "Server process does not exist\n");
+				}
+				else {
+				 fprintf(stdout, "Shutting Server with pid %li\n",
+				         (long)shm_ptr->server_pid);
+				}
 				//
 				// /* kill all cashier processes if open */
 				// int cur_cashier_num = shm_ptr->cur_cashier_num;
