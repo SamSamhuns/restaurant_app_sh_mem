@@ -120,36 +120,21 @@ int main(int argc, char const *argv[]){
 	/* If control reaches here Now we can increment cur_client_num, overall_client_num
 	        and add clients first to the client_cashier_queue */
 	//////* Acquire semaphore lock first before writing in shared memory *//////
-	if (sem_wait(shm_write_sem) == -1) {                         // wait(WriteS)
-		perror("sem_wait()");
-		exit(1);
-	}
-	shm_ptr->cur_client_num += 1;
-	shm_ptr->overall_client_num += 1;
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");		          //  // wait(WriteS)
+	shm_ptr->cur_client_num += 1;											  //
+	shm_ptr->overall_client_num += 1;									      //
+	/* release semaphore write lock after writing to shared memory */	 	  //
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");                 //  // post(WriteS)
+	////////////////////////////////////////////////////////////////////////////
 
-	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {                         // post(WriteS)
-		perror("sem_post()");
-		exit(1);
-	}
-	/////////////////////////////////////////////////////////////////////////////
-
-	////////* Client locks the cashier_cli_q_sem semaphore by calling wait on it */////////
-	//////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(cashier_cli_q_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
-
-	/* Client joins the client_cashier_queue */
-	enqueue_client_cashier_q(shm_ptr, itemId, shm_write_sem);
-
-	/* signal sempahore after adding itself to the client_cashier_queue */////////
-	if (sem_post(cashier_cli_q_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
-	//////////////////////////////////////////////////////////////////////////////
+	///* Client locks the cashier_cli_q_sem semaphore by calling wait on it *///
+	////////////////////////////////////////////////////////////////////////////
+	TRY_AND_CATCH_INT(sem_wait(cashier_cli_q_sem), "sem_wait()"); 			  //
+	/* Client joins the client_cashier_queue */								  //
+	enqueue_client_cashier_q(shm_ptr, itemId, shm_write_sem);				  //
+	/* signal sempahore after adding itself to the client_cashier_queue *///////
+	TRY_AND_CATCH_INT(sem_post(cashier_cli_q_sem), "sem_post()");			  //
+	////////////////////////////////////////////////////////////////////////////
 
 	/* IMPORTANT have to make the client stop here at this point before proceeding */
 	/* Client waits till cashier has set a serving time for both */
@@ -165,10 +150,7 @@ int main(int argc, char const *argv[]){
 	}
 	/* client releases the lock on the cashier dequeue sem so cashier
 	    can proceed and server other clients before being served by the cashier and going to sleep */
-	if (sem_post(deq_c_block_sem) == -1) {                                                          // wait (DeqC)
-		perror("sem_wait()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_post(deq_c_block_sem), "sem_post()");
 	// TRY_AND_CATCH_INT(sem_post(deq_c_block_sem), "sem_wait()");
 	sleep((shm_ptr->client_record_array[shm_ptr->cur_client_record_size]).time_with_cashier); /* client is being serve by the cashier */
 
@@ -242,17 +224,10 @@ int main(int argc, char const *argv[]){
 
 	/* Decrement the cur_client_num counter before leaving */
 	////////* Acquire semaphore lock first before writing in shared memory *//////
-	if (sem_wait(shm_write_sem) == -1) {
-		perror("sem_wait()");
-		exit(1);
-	}
-	shm_ptr->cur_client_num -= 1;
-
-	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shm_write_sem) == -1) {
-		perror("sem_post()");
-		exit(1);
-	}
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");					//
+	shm_ptr->cur_client_num -= 1;												//
+	/* release semaphore write lock after writing to shared memory */			//
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");					//
 	//////////////////////////////////////////////////////////////////////////////
 
 	printf("Client with ID %i has successfully ordered, dined and left the restaurant\n", getpid());
