@@ -108,7 +108,7 @@ int main(int argc, char const *argv[]) {
 	shm_ptr->cur_client_num = 0;
 	shm_ptr->overall_client_num = 0;
 	/* release semaphore write lock after writing to shared memory */
-	TRY_AND_CATCH_INT(sem_post(deq_s_block_sem), "sem_post()");
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 	//////////////////////////////////////////////////////////////////////////////
 
 	sleep(12); // To give enough time for clients to arrive in the beginning

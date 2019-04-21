@@ -87,19 +87,13 @@ int main(int argc, char const *argv[]) {
 	/* join the cashier list by adding cashier pid to cashier_pid_queue */
 	else {
 		//////* Acquire semaphore lock first before writing in shared memory *//////
-		if (sem_wait(shm_write_sem) == -1) {
-			perror("sem_wait()");
-			exit(1);
-		}
+		TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 		int cashier_pos_temp = shm_ptr->cur_cashier_num;
 		shm_ptr->cashier_pid_array[cashier_pos_temp] = getpid();
 		shm_ptr->cur_cashier_num += 1;
 
 		/* release semaphore write lock after writing to shared memory */
-		if (sem_post(shm_write_sem) == -1) {
-			perror("sem_post()");
-			exit(1);
-		}
+		TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 		////////////////////////////////////////////////////////////////////////////
 	}
 
@@ -117,19 +111,12 @@ int main(int argc, char const *argv[]) {
 		}
 		/* Cashier locks the cashier_sem semaphore before proceeding to make sure
 		   not two cashiers grab the same client */
-		////////////////////////////////////////////////////////////////////////////
-		if (sem_wait(cashier_sem) == -1) {                                         // wait(CaS)
-			perror("sem_wait()");
-			exit(1);
-		}
+		TRY_AND_CATCH_INT(sem_wait(cashier_sem), "sem_wait()");								// wait(CaS)
 		/* If there are no clients currently waiting to be processed in the cashier client queue
 		   take a break in the interval [1...breakTime] */
 		if (shm_ptr->size_client_Q <= 0) {
 			/* Cashier releases cashier_sem lock */                                         // Signal (CaS)
-			if (sem_post(cashier_sem) == -1) {
-				perror("sem_post()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_post(cashier_sem), "sem_post()");
 			int temp_sleep_time = rand() % (((int)breakTime)+1);
 			if (temp_sleep_time == 0) { // if the rand created a perfectly divisible num
 				temp_sleep_time = 1;
@@ -142,17 +129,11 @@ int main(int argc, char const *argv[]) {
 		/* if there are clients queuing up in the client cashier queue */
 		else {
 			/* Cashier locks the cashier_cli_q_sem  semaphore */                                  // wait (CiQS)
-			if (sem_wait(cashier_cli_q_sem ) == -1) {
-				perror("sem_wait()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_wait(cashier_cli_q_sem), "sem_wait()");
 
 			/* Write client information to the shared memory in client_record_array */
 			//////* Acquire semaphore lock first before writing in shared memory *//////
-			if (sem_wait(shm_write_sem) == -1) {
-				perror("sem_wait()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
 
 			/* get index of current client to be handled */
 			int cli_record_index = shm_ptr->cur_client_record_size;
@@ -184,30 +165,19 @@ int main(int argc, char const *argv[]) {
 			shm_ptr->cur_client_record_size += 1;
 
 			/* release semaphore write lock after writing to shared memory */
-			if (sem_post(shm_write_sem) == -1) {
-				perror("sem_post()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
+
 			////////////////////////////////////////////////////////////////////////////
 			/* wait on cashier dequeue sem so that client has time to get its serving wait tiem */
-			if (sem_wait(deq_c_block_sem) == -1) {											// wait (DeqC)
-				perror("sem_wait()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_wait(deq_c_block_sem), "sem_wait()");					   // wait (DeqC)
 			/*remove the client from the queue after writing its information to the
 			    client client_record_array */
 			dequeue_client_cashier_q(shm_ptr, shm_write_sem);
 
 			/* Cashier releases the cashier_sem lock */                            		   // Signal (CaS)
-			if (sem_post(cashier_sem) == -1) {
-				perror("sem_post()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_post(cashier_sem), "sem_post()");
 			/* Cashier releases the cashier_cli_q_sem  semaphore */                        // Signal (CiQS)
-			if (sem_post(cashier_cli_q_sem ) == -1) {
-				perror("sem_wait()");
-				exit(1);
-			}
+			TRY_AND_CATCH_INT(sem_post(cashier_cli_q_sem), "sem_post()");
 			/* Only sleep after lock on the cashier_sem has been lifted */
 			sleep(temp_sleep_time); /* cashier serves client */
 		}

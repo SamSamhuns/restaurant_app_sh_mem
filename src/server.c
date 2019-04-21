@@ -73,18 +73,12 @@ int main(int argc, char const *argv[]) {
 	/* Check if more than one servers are being tried to be initiated */
 	/* add Server pid to the server pid var in shared mem */
 	if (shm_ptr->server_pid == NO_SERVER_TEMP_PID) {
-		////////* Acquire semaphore lock first before writing in shared memory *////
-		if (sem_wait(shm_write_sem) == -1) {                                      //
-			perror("sem_wait()");                                                 //
-			exit(1);                                                              //
-		}                                                                         //
-		shm_ptr->server_pid = getpid();                                           //
-		/* release semaphore write lock after writing to shared memory */         //
-		if (sem_post(shm_write_sem) == -1) {                                      //
-			perror("sem_post()");                                                 //
-			exit(1);                                                              //
-		}                                                                         //
-		////////////////////////////////////////////////////////////////////////////
+		////////* Acquire semaphore lock first before writing in shared memory */                                                                 //
+		TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");
+		shm_ptr->server_pid = getpid();
+		/* release semaphore write lock after writing to shared memory */
+		TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
+		////////////////////////////////////////////////////////////////////////
 
 	}
 	else {
@@ -106,12 +100,9 @@ int main(int argc, char const *argv[]) {
 			                    shutdown_sem, shm_ptr, &shm_fd);
 			return 0;
 		}
-
 		/* Server will wait for a client to reach out for order */              // wait ( Ses )
-		if (sem_wait(server_sem) == -1) {
-			perror("sem_wait()");
-			exit(1);
-		}
+		TRY_AND_CATCH_INT(sem_wait(server_sem), "sem_wait()");
+
 		/* write time spent with client on the shared memory segment */
 		/* Check the client_record_array for pid of current client process
 		    to write the allocated serving time to the
@@ -119,7 +110,6 @@ int main(int argc, char const *argv[]) {
 		int temp_server_cli_serving_time = 0;
 		for (int i = 0; i < shm_ptr->cur_client_record_size; i++) {
 			if ((shm_ptr->client_record_array[i]).client_pid == (shm_ptr->client_server_queue[shm_ptr->front_server_Q]).client_pid ) {
-
 				int menu_item_id = ((shm_ptr->client_server_queue[shm_ptr->front_server_Q]).menu_item_id )-1; // sub 1 to match item order in file
 				int menu_max_time = 1;
 				int menu_min_time = 1;
@@ -132,7 +122,6 @@ int main(int argc, char const *argv[]) {
 						break;
 					}
 				}
-
 				/* Choose a serving time between min and max serving time of food ordered */
 				temp_server_cli_serving_time = rand() % (((menu_max_time-menu_min_time)+1) + menu_min_time);
 				(shm_ptr->client_record_array[i]).time_with_server = temp_server_cli_serving_time;
@@ -141,14 +130,9 @@ int main(int argc, char const *argv[]) {
 				break;
 			}
 		}
-
-
 		/* Server will allow client to leave after the serving has been done
 		    and dequeue the client from the client_server_queue */
-		if (sem_post(deq_s_block_sem) == -1) {									// signal ( DeqS )
-			perror("sem_wait()");
-			exit(1);
-		}
+		TRY_AND_CATCH_INT(sem_post(deq_s_block_sem), "sem_post()");				// signal ( DeqS )
 	}
 	// exit of main while loop
 
