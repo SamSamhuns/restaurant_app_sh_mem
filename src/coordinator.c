@@ -43,18 +43,33 @@ int main(int argc, char const *argv[]) {
 	/* name of the shared memory object / SHMID */
 	fprintf(stdout, "Shared Memory Restaurant SHMID is %s\n", SHMID);
 	int shm_fd; /* shared memory file descriptor */
-	struct Shared_memory_struct *shared_mem_ptr;
+	struct Shared_memory_struct *shm_ptr;
 
 	/* named semaphores initialization */
-	sem_t *cashierS = sem_open(CASHIER_SEM,
-	                           O_CREAT | O_EXCL, 0666, 1); /* Init cashierS semaphore to 1 */
-	sem_t *clientQS = sem_open(CLIENTQ_SEM,
-	                           O_CREAT | O_EXCL, 0666, 1); /* Init clientQS sempaphore to 1 */
-	sem_t *shared_mem_write_sem = sem_open(SHARED_MEM_WR_LOCK_SEM,
-	                                       O_CREAT | O_EXCL, 0666, 1); /* Init shared mem write sempaphore to 1 */
-	TRY_AND_CATCH_SEM(cashierS, "sem_open()");
-	TRY_AND_CATCH_SEM(clientQS, "sem_open()");
-	TRY_AND_CATCH_SEM(shared_mem_write_sem, "sem_open()");
+	sem_t *cashier_sem = sem_open(CASHIER_SEM,
+	                              O_CREAT | O_EXCL, 0666, 1); /* Init cashier_sem semaphore to 1 */
+	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM,
+	                                    O_CREAT | O_EXCL, 0666, 1); /* Init cashier_cli_q_sem sempaphore to 1 */
+	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM,
+	                                  O_CREAT | O_EXCL, 0666, 0); /* Init cashier queue block semaphore to 0 */
+	sem_t *server_sem = sem_open(SERVER_SEM,
+	                             O_CREAT | O_EXCL, 0666, 0); /* Init server sem sempaphore to 1 */
+	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM,
+	                                   O_CREAT | O_EXCL, 0666, 1); /* Init client server q semaphore to 1 */
+	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM,
+	                                  O_CREAT | O_EXCL, 0666, 0); /* Init server queue block sempaphore to 0 */
+	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM,
+	                                O_CREAT | O_EXCL, 0666, 1);        /* Init shared mem write sempaphore to 1 */
+	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM,
+	                               O_CREAT | O_EXCL, 0666, 1);        /* Init shared mem write sempaphore to 1 */
+	TRY_AND_CATCH_SEM(cashier_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(cashier_cli_q_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(deq_c_block_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(server_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(server_cli_q_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(deq_s_block_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(shm_write_sem, "sem_open()");
+	TRY_AND_CATCH_SEM(shutdown_sem, "sem_open()");
 
 	/* create the shared memory object O_EXCL flag gives error if a shared memory
 	    with the given name already exists */
@@ -67,8 +82,8 @@ int main(int argc, char const *argv[]) {
 		exit(1);
 	}
 	/* memory map the shared memory object */
-	if ((shared_mem_ptr = mmap(0, sizeof(Shared_memory_struct),
-	                           PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
+	if ((shm_ptr = mmap(0, sizeof(Shared_memory_struct),
+	                    PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
 		perror("mmap");
 		exit(1);
 	};
@@ -77,27 +92,27 @@ int main(int argc, char const *argv[]) {
 
 	///////////////* Acquire semaphore lock first before writing *////////////////
 	//////////////////////////////////////////////////////////////////////////////
-	if (sem_wait(shared_mem_write_sem) == -1) {
+	if (sem_wait(shm_write_sem) == -1) {
 		perror("sem_wait()");
 		exit(1);
 	}
-	shared_mem_ptr->front_client_Q = -1;
-	shared_mem_ptr->rear_client_Q = -1;
-	shared_mem_ptr->size_client_Q = -1;
-	shared_mem_ptr->front_server_Q = -1;
-	shared_mem_ptr->rear_server_Q = -1;
-	shared_mem_ptr->size_server_Q = -1;
-	shared_mem_ptr->cur_client_record_size = 0;
-	shared_mem_ptr->MaxCashiers = MaxCashiers; // should not change later
-	shared_mem_ptr->MaxPeople = MaxPeople;  // should not change later
-	shared_mem_ptr->initiate_shutdown = 0; // shutdown not initiated in the beginning
-	shared_mem_ptr->server_pid = NO_SERVER_TEMP_PID; // place holder server_pid
-	shared_mem_ptr->cur_cashier_num = 0;
-	shared_mem_ptr->cur_client_num = 0;
-	shared_mem_ptr->overall_client_num = 0;
+	shm_ptr->front_client_Q = -1;
+	shm_ptr->rear_client_Q = -1;
+	shm_ptr->size_client_Q = -1;
+	shm_ptr->front_server_Q = -1;
+	shm_ptr->rear_server_Q = -1;
+	shm_ptr->size_server_Q = -1;
+	shm_ptr->cur_client_record_size = 0;
+	shm_ptr->MaxCashiers = MaxCashiers; // should not change later
+	shm_ptr->MaxPeople = MaxPeople;  // should not change later
+	shm_ptr->initiate_shutdown = 0; // shutdown not initiated in the beginning
+	shm_ptr->server_pid = NO_SERVER_TEMP_PID; // place holder server_pid
+	shm_ptr->cur_cashier_num = 0;
+	shm_ptr->cur_client_num = 0;
+	shm_ptr->overall_client_num = 0;
 
 	/* release semaphore write lock after writing to shared memory */
-	if (sem_post(shared_mem_write_sem) == -1) {
+	if (sem_post(shm_write_sem) == -1) {
 		perror("sem_post()");
 		exit(1);
 	}
@@ -116,21 +131,21 @@ int main(int argc, char const *argv[]) {
 		/* if there are no clients in the restaurant then sleep for a while
 		    and check if still no clients then close restaurant and
 		    send kill signals to all cashiers and the server */
-		if ( shared_mem_ptr->cur_client_num == 0 ) {
+		if ( shm_ptr->cur_client_num == 0 ) {
 			sleep(MaxTimeWait);
 			/* if still no clients present then initiate restaurant shutdown */
-			if ( shared_mem_ptr->cur_client_num == 0 ) {
+			if ( shm_ptr->cur_client_num == 0 ) {
 
 				////* Acquire semaphore lock first before writing in shared memory *////
 				////////////////////////////////////////////////////////////////////////
-				if (sem_wait(shared_mem_write_sem) == -1) {                           //
+				if (sem_wait(shm_write_sem) == -1) {                           //
 					perror("sem_wait()");                                             //
 					exit(1);                                                          //
 				}                                                                     //
 				// initiate shutdown for all processes and take no more clients		  //
-				shared_mem_ptr->initiate_shutdown = 1;                                //
+				shm_ptr->initiate_shutdown = 1;                                //
 				/* release semaphore write lock after writing to shared memory */     //
-				if (sem_post(shared_mem_write_sem) == -1) {                           //
+				if (sem_post(shm_write_sem) == -1) {                           //
 					perror("sem_post()");                                             //
 					exit(1);                                                          //
 				}                                                                     //
@@ -151,15 +166,15 @@ int main(int argc, char const *argv[]) {
 				FILE *f_stats = fopen(f_stat_name, "w");
 				fprintf(f_stats, "Client_pid, item_ordered, money_spent($), eat_time, time_with_cashier, time_with_server, total_time_spent\n");
 
-				int cur_client_record_size = shared_mem_ptr->cur_client_record_size;
+				int cur_client_record_size = shm_ptr->cur_client_record_size;
 				for (int i = 0; i < cur_client_record_size; i++) {
-					long client_pid = (long) ((shared_mem_ptr->client_record_array[i]).client_pid);
+					long client_pid = (long) ((shm_ptr->client_record_array[i]).client_pid);
 					char menu_desc[MAX_ITEM_DESC_LEN];
-					strcpy(menu_desc, ((shared_mem_ptr->client_record_array[i]).menu_desc));
-					int menu_price = ((shared_mem_ptr->client_record_array[i]).menu_price);
-					int eat_time = ((shared_mem_ptr->client_record_array[i]).eat_time);
-					int time_with_cashier = ((shared_mem_ptr->client_record_array[i]).time_with_cashier);
-					int time_with_server = ((shared_mem_ptr->client_record_array[i]).time_with_server);
+					strcpy(menu_desc, ((shm_ptr->client_record_array[i]).menu_desc));
+					int menu_price = ((shm_ptr->client_record_array[i]).menu_price);
+					int eat_time = ((shm_ptr->client_record_array[i]).eat_time);
+					int time_with_cashier = ((shm_ptr->client_record_array[i]).time_with_cashier);
+					int time_with_server = ((shm_ptr->client_record_array[i]).time_with_server);
 					int total_time_spent = eat_time + time_with_cashier + time_with_server;
 					printf("Client with ID %li spent %i s with the cashier, %i s waiting for food and %i s eating %s. In total, they spent %i s in the restaurant and spent a total of %i dollars.\n",
 					       client_pid, time_with_cashier, time_with_server, eat_time, menu_desc, total_time_spent, menu_price);
@@ -171,18 +186,18 @@ int main(int argc, char const *argv[]) {
 				////////////////////////* NORMAL EXIT CLEAN UP*/////////////////////////
 				/////////////  FORCEFUL SHUTDOWN FROM COORDINATOR  /////////////
 				/* kill the server process if open */
-				// if (kill( shared_mem_ptr->server_pid, SIGTERM) == -1 ) {
+				// if (kill( shm_ptr->server_pid, SIGTERM) == -1 ) {
 				//  fprintf(stderr, "Server process does not exist\n");
 				// }
 				// else {
 				//  fprintf(stdout, "Shutting Server with pid %li\n",
-				//          (long)shared_mem_ptr->server_pid);
+				//          (long)shm_ptr->server_pid);
 				// }
 				//
 				// /* kill all cashier processes if open */
-				// int cur_cashier_num = shared_mem_ptr->cur_cashier_num;
+				// int cur_cashier_num = shm_ptr->cur_cashier_num;
 				// for (int i = 0; i < cur_cashier_num; i++) {
-				//  pid_t cashier_pid = shared_mem_ptr->cashier_pid_array[i];
+				//  pid_t cashier_pid = shm_ptr->cashier_pid_array[i];
 				//  printf("Shutting cashier with pid %li\n", (long)cashier_pid );
 				//  if (kill( cashier_pid, SIGTERM) == -1 ) {
 				//      fprintf(stderr, "Cashier with pid %li does not exist\n",
@@ -192,7 +207,9 @@ int main(int argc, char const *argv[]) {
 				////////////////////////////////////////////////////////////////////////
 
 				// close all sems and shm
-				all_exit_cleanup(clientQS, cashierS, shared_mem_write_sem, shared_mem_ptr, &shm_fd);
+				all_exit_cleanup(cashier_sem, cashier_cli_q_sem, deq_c_block_sem, server_sem,
+				                 server_cli_q_sem, deq_s_block_sem, shm_write_sem, shutdown_sem,
+				                 shm_ptr, &shm_fd);
 				// unlink all sems and shm
 				coordinator_only_exit_cleanup();
 				fprintf(stdout, "Shutting down restaurant normally\n");
@@ -266,7 +283,7 @@ void sigint_handler(int sig_num) {
 	fflush(stdout);
 
 	/*EXIT CLEAN UP*/
-	coordinator_only_exit_cleanup ();
+	coordinator_only_exit_cleanup();
 	exit(0);
 }
 
@@ -278,6 +295,6 @@ void sigterm_handler(int sig_num) {
 	fflush(stdout);
 
 	/*EXIT CLEAN UP*/
-	coordinator_only_exit_cleanup ();
+	coordinator_only_exit_cleanup();
 	exit(0);
 }
