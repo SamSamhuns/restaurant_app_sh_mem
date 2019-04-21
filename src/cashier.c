@@ -154,6 +154,7 @@ int main(int argc, char const *argv[]) {
 				exit(1);
 			}
 
+			/* get index of current client to be handled */
 			int cli_record_index = shm_ptr->cur_client_record_size;
 			/* decrement by 1 as the menu items are zero indexed in menu_items struct */
 			int menu_item_id = ((shm_ptr->client_cashier_queue[shm_ptr->front_client_Q]).menu_item_id)-1;
