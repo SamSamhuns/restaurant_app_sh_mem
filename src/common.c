@@ -93,105 +93,105 @@ void all_exit_cleanup(sem_t *clientQS,
 }
 
 /* func to enqueue client pid in cashier FIFO queue
-	This function automatically does a shared mem write semaphore lock
-	IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+    This function automatically does a shared mem write semaphore lock
+    IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void enqueue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr,
-	long menu_item_id, sem_t *shared_mem_write_sem) {
-		////////* Acquire semaphore lock first before writing in shared memory *////
-		////////////////////////////////////////////////////////////////////////////
-		if (sem_wait(shared_mem_write_sem) == -1) {
-			perror("sem_wait()");
-			exit(1);
-		}
-		/* if no clients have been processed before in the cashier queue */
-		 if (shared_mem_ptr->size_client_Q < 0) {
-		 		shared_mem_ptr->client_cashier_queue[0].client_pid = getpid();
-				shared_mem_ptr->client_cashier_queue[0].menu_item_id = (int)menu_item_id;
-				shared_mem_ptr->front_client_Q = 0; // front = 0
-				shared_mem_ptr->rear_client_Q = 0; // rear = 0
-				shared_mem_ptr->size_client_Q = 1; // size  = 1
-		 }
-		 /* if clients have been previously processed in the cashier queue */
-		 else {
-			 int rear = shared_mem_ptr->rear_client_Q;
-			 shared_mem_ptr->client_cashier_queue[rear+1].client_pid = getpid();
-			 shared_mem_ptr->client_cashier_queue[rear+1].menu_item_id = (int)menu_item_id;
-			 shared_mem_ptr->rear_client_Q ++; // rear ++
-			 shared_mem_ptr->size_client_Q ++; // size ++
-		 }
-		 /* release semaphore write lock after writing to shared memory */
-		 if (sem_post(shared_mem_write_sem) == -1) {
-			 perror("sem_post()");
-			 exit(1);
-		 }
-		 ///////////////////////////////////////////////////////////////////////////
+                              long menu_item_id, sem_t *shared_mem_write_sem) {
+	////////* Acquire semaphore lock first before writing in shared memory *////
+	////////////////////////////////////////////////////////////////////////////
+	if (sem_wait(shared_mem_write_sem) == -1) {
+		perror("sem_wait()");
+		exit(1);
+	}
+	/* if no clients have been processed before in the cashier queue */
+	if (shared_mem_ptr->size_client_Q < 0) {
+		shared_mem_ptr->client_cashier_queue[0].client_pid = getpid();
+		shared_mem_ptr->client_cashier_queue[0].menu_item_id = (int)menu_item_id;
+		shared_mem_ptr->front_client_Q = 0;         // front = 0
+		shared_mem_ptr->rear_client_Q = 0;         // rear = 0
+		shared_mem_ptr->size_client_Q = 1;         // size  = 1
+	}
+	/* if clients have been previously processed in the cashier queue */
+	else {
+		int rear = shared_mem_ptr->rear_client_Q;
+		shared_mem_ptr->client_cashier_queue[rear+1].client_pid = getpid();
+		shared_mem_ptr->client_cashier_queue[rear+1].menu_item_id = (int)menu_item_id;
+		shared_mem_ptr->rear_client_Q++;       // rear ++
+		shared_mem_ptr->size_client_Q++;       // size ++
+	}
+	/* release semaphore write lock after writing to shared memory */
+	if (sem_post(shared_mem_write_sem) == -1) {
+		perror("sem_post()");
+		exit(1);
+	}
+	///////////////////////////////////////////////////////////////////////////
 }
 
 /* func to enqueue client pid in server FIFO queue
-This function automatically does a shared mem write semaphore lock
-IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+   This function automatically does a shared mem write semaphore lock
+   IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void enqueue_client_server_q(struct Shared_memory_struct *shared_mem_ptr,
-	long menu_item_id, sem_t *shared_mem_write_sem) {
-		////////* Acquire semaphore lock first before writing in shared memory *////
-		////////////////////////////////////////////////////////////////////////////
-		if (sem_wait(shared_mem_write_sem) == -1) {
-			perror("sem_wait()");
-			exit(1);
-		}
-		/* if no clients have been processed before in the cashier queue */
-		 if (shared_mem_ptr->size_server_Q < 0) {
-			 /* Add client pid and order info to queue */
-		 		shared_mem_ptr->client_server_queue[0].client_pid = getpid();
-				shared_mem_ptr->client_server_queue[0].menu_item_id = (int)menu_item_id;
-				shared_mem_ptr->front_server_Q = 0; // front = 0
-				shared_mem_ptr->rear_server_Q = 0; // rear = 0
-				shared_mem_ptr->size_server_Q = 1; // size  = 1
-		 }
-		 /* if clients have been previously processed in the cashier queue */
-		 else {
-			 int rear = shared_mem_ptr->rear_server_Q;
-			 /* Add client pid and order info to queue */
-			 shared_mem_ptr->client_server_queue[rear+1].client_pid = getpid();
-			 shared_mem_ptr->client_server_queue[rear+1].menu_item_id = (int)menu_item_id;
-			 shared_mem_ptr->rear_server_Q ++; // rear ++
-			 shared_mem_ptr->size_server_Q ++; // size ++
-		 }
-		 /* release semaphore write lock after writing to shared memory */
-		 if (sem_post(shared_mem_write_sem) == -1) {
-			 perror("sem_post()");
-			 exit(1);
-		 }
-		 ///////////////////////////////////////////////////////////////////////////
+                             long menu_item_id, sem_t *shared_mem_write_sem) {
+	////////* Acquire semaphore lock first before writing in shared memory *////
+	////////////////////////////////////////////////////////////////////////////
+	if (sem_wait(shared_mem_write_sem) == -1) {
+		perror("sem_wait()");
+		exit(1);
+	}
+	/* if no clients have been processed before in the cashier queue */
+	if (shared_mem_ptr->size_server_Q < 0) {
+		/* Add client pid and order info to queue */
+		shared_mem_ptr->client_server_queue[0].client_pid = getpid();
+		shared_mem_ptr->client_server_queue[0].menu_item_id = (int)menu_item_id;
+		shared_mem_ptr->front_server_Q = 0;         // front = 0
+		shared_mem_ptr->rear_server_Q = 0;         // rear = 0
+		shared_mem_ptr->size_server_Q = 1;         // size  = 1
+	}
+	/* if clients have been previously processed in the cashier queue */
+	else {
+		int rear = shared_mem_ptr->rear_server_Q;
+		/* Add client pid and order info to queue */
+		shared_mem_ptr->client_server_queue[rear+1].client_pid = getpid();
+		shared_mem_ptr->client_server_queue[rear+1].menu_item_id = (int)menu_item_id;
+		shared_mem_ptr->rear_server_Q++;       // rear ++
+		shared_mem_ptr->size_server_Q++;       // size ++
+	}
+	/* release semaphore write lock after writing to shared memory */
+	if (sem_post(shared_mem_write_sem) == -1) {
+		perror("sem_post()");
+		exit(1);
+	}
+	///////////////////////////////////////////////////////////////////////////
 }
 
 /* func to dequeue client pid item in client FIFO queue
-This function automatically does a shared mem write semaphore lock
-IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+   This function automatically does a shared mem write semaphore lock
+   IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void dequeue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem) {
-		////////* Acquire semaphore lock first before writing in shared memory *////
-		////////////////////////////////////////////////////////////////////////////
-		if (sem_wait(shared_mem_write_sem) == -1) {
-			perror("sem_wait()");
-			exit(1);
-		}
-		if (shared_mem_ptr->size_client_Q > 0) {
-			shared_mem_ptr->size_client_Q --; // size --
-			shared_mem_ptr->front_client_Q ++; // front ++
-		}
-		else {
-			fprintf(stderr, "Cashier client queue is empty. Cannot dequeue\n");
-		}
-		/* release semaphore write lock after writing to shared memory */
-		if (sem_post(shared_mem_write_sem) == -1) {
-			perror("sem_post()");
-			exit(1);
-		}
-		///////////////////////////////////////////////////////////////////////////
+	////////* Acquire semaphore lock first before writing in shared memory *////
+	////////////////////////////////////////////////////////////////////////////
+	if (sem_wait(shared_mem_write_sem) == -1) {
+		perror("sem_wait()");
+		exit(1);
+	}
+	if (shared_mem_ptr->size_client_Q > 0) {
+		shared_mem_ptr->size_client_Q--;      // size --
+		shared_mem_ptr->front_client_Q++;      // front ++
+	}
+	else {
+		fprintf(stderr, "Cashier client queue is empty. Cannot dequeue\n");
+	}
+	/* release semaphore write lock after writing to shared memory */
+	if (sem_post(shared_mem_write_sem) == -1) {
+		perror("sem_post()");
+		exit(1);
+	}
+	///////////////////////////////////////////////////////////////////////////
 }
 
 /* func to dequeue client pid item in server FIFO queue
-This function automatically does a shared mem write semaphore lock
-IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+   This function automatically does a shared mem write semaphore lock
+   IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void dequeue_client_server_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem) {
 	////////* Acquire semaphore lock first before writing in shared memory *////
 	////////////////////////////////////////////////////////////////////////////
@@ -200,8 +200,8 @@ void dequeue_client_server_q(struct Shared_memory_struct *shared_mem_ptr, sem_t 
 		exit(1);
 	}
 	if (shared_mem_ptr->size_server_Q > 0) {
-		shared_mem_ptr->size_server_Q --; // size --
-		shared_mem_ptr->front_server_Q ++; // front ++
+		shared_mem_ptr->size_server_Q--;  // size --
+		shared_mem_ptr->front_server_Q++;  // front ++
 	}
 	else {
 		fprintf(stderr, "Server client queue is empty. Cannot dequeue\n");

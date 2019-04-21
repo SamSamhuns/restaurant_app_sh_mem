@@ -106,7 +106,7 @@ int main(int argc, char const *argv[]){
 	}
 
 	/* If control reaches here Now we can increment cur_client_num, overall_client_num
-			and add clients first to the client_cashier_queue */
+	        and add clients first to the client_cashier_queue */
 	////////* Acquire semaphore lock first before writing in shared memory *//////
 	if (sem_wait(shared_mem_write_sem) == -1) {
 		perror("sem_wait()");
@@ -165,6 +165,14 @@ int main(int argc, char const *argv[]){
 		temp_sleep_time = 1;
 	}
 	printf("Client %li is eating for %i s before leaving\n", (long)getpid(), temp_sleep_time );
+	/* setting the eat tiem for the client */
+	for (int i = 0; i < shared_mem_ptr->cur_client_record_size; i++) {
+		if ( (shared_mem_ptr->client_record_array[i]).client_pid == getpid() ) {
+			(shared_mem_ptr->client_record_array[i]).eat_time = temp_sleep_time;
+			break;
+		}
+	}
+
 	sleep(temp_sleep_time);
 
 	/* Decrement the cur_client_num counter before leaving */

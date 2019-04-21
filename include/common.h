@@ -14,34 +14,34 @@
 #define DEBUG 1 // Debug Mode
 
 /* Boilerplate code for uniform error checking
-  Example.  if(pipe(fd_pipe) == -1){
-            	perror("could not pipe");
-            	exit(1);
+   Example.  if(pipe(fd_pipe) == -1){
+                perror("could not pipe");
+                exit(1);
             }
-  SHortened to:
+   SHortened to:
             TRY_AND_CATCH(pipe(fd_pipe), "pipe");
-*/
+ */
 #define TRY_AND_CATCH_INT(exp, err_cmd) do { \
-    if (exp < 0) { \
-        perror(err_cmd); \
-        exit(1);   \
-    } \
+		if (exp < 0) { \
+			perror(err_cmd); \
+			exit(1);   \
+		} \
 } while (0)
 
 /* For catching NULL pointers*/
 #define TRY_AND_CATCH_NULL(exp, err_cmd) do { \
-    if (exp == NULL) { \
-        perror(err_cmd); \
-        exit(1);   \
-    } \
+		if (exp == NULL) { \
+			perror(err_cmd); \
+			exit(1);   \
+		} \
 } while (0)
 
 /* For catching sem_open erros */
 #define TRY_AND_CATCH_SEM(sem_exp, err_cmd) do { \
-    if (sem_exp == SEM_FAILED) { \
-        perror(err_cmd); \
-        exit(1);   \
-    } \
+		if (sem_exp == SEM_FAILED) { \
+			perror(err_cmd); \
+			exit(1);   \
+		} \
 } while (0)
 
 /* struct representing each menu item as Item
@@ -55,53 +55,53 @@ typedef struct Item {
 } Item;
 
 typedef struct Client_Queue_item {
-    pid_t client_pid;
-    int menu_item_id;
+	pid_t client_pid;
+	int menu_item_id;
 } Client_Queue_item;
 
 /* This is the main client record struct item */
 typedef struct Client_record_item {
-    pid_t client_pid;
-    int menu_item_id;
-    char menu_desc[MAX_ITEM_DESC_LEN];
-    int menu_price;
-    int eat_time;
-    int time_with_cashier;
-    int time_with_server;
-    int total_time_spent;
+	pid_t client_pid;
+	int menu_item_id;
+	char menu_desc[MAX_ITEM_DESC_LEN];
+	int menu_price;
+	int eat_time;
+	int time_with_cashier;
+	int time_with_server;
+	int total_time_spent;
 } Client_record;
 
 /*Creating a shared memory struct*/
 typedef struct Shared_memory_struct {
-    /* We will deploy three custom array based queues with a
-        maximum capacity of MAX_REST_QUEUE_CAP (The maximum num of clients the
-        restaurant can handle )
-        They are client cashier queue, client server queue and a client record queue */
-    int front_client_Q;
-    int rear_client_Q;
-    int size_client_Q;
-    struct Client_Queue_item client_cashier_queue[MAX_REST_QUEUE_CAP];
+	/* We will deploy three custom array based queues with a
+	    maximum capacity of MAX_REST_QUEUE_CAP (The maximum num of clients the
+	    restaurant can handle )
+	    They are client cashier queue, client server queue and a client record queue */
+	int front_client_Q;
+	int rear_client_Q;
+	int size_client_Q;
+	struct Client_Queue_item client_cashier_queue[MAX_REST_QUEUE_CAP];
 
-    int front_server_Q;
-    int rear_server_Q;
-    int size_server_Q;
-    struct Client_Queue_item client_server_queue[MAX_REST_QUEUE_CAP];
+	int front_server_Q;
+	int rear_server_Q;
+	int size_server_Q;
+	struct Client_Queue_item client_server_queue[MAX_REST_QUEUE_CAP];
 
-    /* client_record_cur_size cannot exceed MAX_REST_QUEUE_CAP */
-    int cur_client_record_size;
-    struct Client_record_item client_record_array[MAX_REST_QUEUE_CAP];
+	/* client_record_cur_size cannot exceed MAX_REST_QUEUE_CAP */
+	int cur_client_record_size;
+	struct Client_record_item client_record_array[MAX_REST_QUEUE_CAP];
 
-    /* static constants */
-    int MaxCashiers;
-    int MaxPeople;
+	/* static constants */
+	int MaxCashiers;
+	int MaxPeople;
 
-    /* dynamic values */
-    int initiate_shutdown; // 1 is all processes should initiate shutdown
-    pid_t cashier_pid_array[MAX_CASHIER_CAP]; // array of pids of cashier processes
-    pid_t server_pid; // pid of current server program
-    int cur_cashier_num; // current number of cashieers
-    int cur_client_num; // current number of total clients
-    int overall_client_num; // overall number of clients processed must be less than MaxPeople
+	/* dynamic values */
+	int initiate_shutdown; // 1 is all processes should initiate shutdown
+	pid_t cashier_pid_array[MAX_CASHIER_CAP]; // array of pids of cashier processes
+	pid_t server_pid; // pid of current server program
+	int cur_cashier_num; // current number of cashieers
+	int cur_client_num; // current number of total clients
+	int overall_client_num; // overall number of clients processed must be less than MaxPeople
 } Shared_memory_struct;
 
 /* Checks if the string str is all digits
@@ -109,11 +109,11 @@ typedef struct Shared_memory_struct {
 int isdigit_all (const char *str, int str_len);
 
 /* function that returns the total number of items in menu to create
-	menu struct array*/
+    menu struct array*/
 int num_menu_items(FILE *fptr);
 
 /* function that parses the menu item file and loads each item
-	with id, name, price with min and max time for waiting */
+    with id, name, price with min and max time for waiting */
 void load_item_struct_arr(FILE *menu_file, struct Item menu_items[]);
 
 /* FINAL CLEAN UP function for unlinking shm and sem
@@ -122,31 +122,31 @@ void coordinator_only_exit_cleanup ();
 
 /* Normal exit clean up call for all processes */
 void all_exit_cleanup (sem_t *clientQS,
-                                   sem_t *cashierS,
-                                   sem_t *shared_mem_write_sem,
-                                   struct Shared_memory_struct *shared_mem_ptr,
-                                   int *shm_fd);
+                       sem_t *cashierS,
+                       sem_t *shared_mem_write_sem,
+                       struct Shared_memory_struct *shared_mem_ptr,
+                       int *shm_fd);
 
 /* func to enqueue client pid in cashier FIFO queue
-	This function automatically does a shared mem write semaphore lock
-	IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+    This function automatically does a shared mem write semaphore lock
+    IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void enqueue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr,
-	long menu_item_id, sem_t *shared_mem_write_sem);
+                              long menu_item_id, sem_t *shared_mem_write_sem);
 
 /* func to enqueue client pid in server FIFO queue
-This function automatically does a shared mem write semaphore lock
-IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+   This function automatically does a shared mem write semaphore lock
+   IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void enqueue_client_server_q(struct Shared_memory_struct *shared_mem_ptr,
-	long menu_item_id, sem_t *shared_mem_write_sem);
+                             long menu_item_id, sem_t *shared_mem_write_sem);
 
 /* func to dequeue client pid item in client FIFO queue
-This function automatically does a shared mem write semaphore lock
-IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+   This function automatically does a shared mem write semaphore lock
+   IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void dequeue_client_cashier_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem);
 
 /* func to dequeue client pid item in server FIFO queue
-This function automatically does a shared mem write semaphore lock
-IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
+   This function automatically does a shared mem write semaphore lock
+   IMPORTANT: This function should NEVER be called INSIDE the shared mem write semaphore lock state */
 void dequeue_client_server_q(struct Shared_memory_struct *shared_mem_ptr, sem_t *shared_mem_write_sem);
 
 
