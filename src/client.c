@@ -155,6 +155,7 @@ int main(int argc, char const *argv[]){
 	/////////////////////////////  DEAL WITH SERVER  ///////////////////////////
 	/*enqueue client to the client_server_queue */
 	enqueue_client_server_q(shm_ptr, itemId, shm_write_sem);
+	printf("Heading towards the server\n");
 
 	/* Client waits in this loop for the server */
 	while (1) {
