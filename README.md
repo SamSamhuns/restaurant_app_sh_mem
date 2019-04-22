@@ -1,10 +1,10 @@
 # A restaurant application with IPC, shared memory and semaphores
 
-This application demonstrates the concept of IPC, POSIX shared memory and semaphores. Real world applications not implemented in any way like this.
+This application demonstrates the concept of IPC, POSIX shared memory and semaphores. The build is supported in both `linux` and `darwin/OSX` systems.
 
 <img src="img/restaurant.png">
 
-## Build (Linux)
+## Build
 
 ```shell
 $ make all
@@ -79,17 +79,83 @@ $ ./client -i itemId -e eatTime -m shmid
 
 ### Implementation
 
-All the participating programs run on the following logic:
+All the participating programs run on the following **pseudocode** logic:
 
-    /*Coordinator*/
+```C
+Semaphore Initialized
+    CaS = 1    // Cashier Sem
+    CaCiQS = 1 // Cash Cli Que Sem
+    DeqC = 0   // Deq Cashier Block Sem
+    SeS = 0    // Server Sem
+    SeCiQS = 1 // Serv Cli Que Sem
+    DeqS = 0   // Deq Server Block Sem
+    ShutS = 0  // Shutdown Sem
+    WriteS = 1 // Write lock Sem
 
-    /*Cashier*/
+Coordinator
+    Open all named semaphores
+    Initialize shared memory
+    while (1)
+        wait (ShutS)
+        send SIGTERM to server
+        set shutdown flag in shm to 1
+        Generate statistics and save in stats/statistics_UNIX_time.txt
+        Close and unlink all open semaphores
+        Close and unlink shared mem
 
-    /*Client with Cashier*/
+Cashier
+    Check if CaQue is more than CaMax then leave
+    add_to_CaQuq
 
-    /*Server*/
+    while (1)
+        if shutdown (shutdown)
+        wait (CaS)
+        if (CaCliQue head is NULL):
+            signal (CaS)
+            sleep([1...breakTime])
+        else:
+            wait (CaCiQS)
+            // Write to shared memory
+            wait (DeqC)
+            dequeue_first_Cli from CaCiQS
+            signal (CaS)
+            signal (CaCiQS)
+            // Process client / wait with client
+            sleep ([1...serviceTime])
 
-    /*Client with Server*/
+Client with Cashier
+    Check if CaCiQue is max then leave
+    wait (CaCiQS)
+    enqueue_itself_to_Cash_Cli_queue
+    signal (CaCiQS)
+
+    // small (insignificant) wait with the cashier to get serve time
+    signal (DeqC)
+    sleep([1...serviceTime])
+    // Interact start with Server
+
+Server
+    while (1)
+        wait (SeS)
+        // check the front of the queue to find the current Client Pid
+        // write server food prep to shared memory
+        sIgnal (DeqS)
+
+Client with Server
+    Enqueue _itself_to_ServerQ // no need for lock as this prevents race conditions
+    while (1)
+        wait (SeCiQS) // ensures only one client deals with the Server at a time
+        If (getpid() != ServerQ_head)
+            signal (SeCiQS)
+        else // getpid() == ServerQ_head
+        signal (SeS)
+
+        wait (DeqS)
+        sleep( [menu_min_time...menu_max_time] )
+        dequeue_itself _from_ServerQ
+        signal (SeCiQS)
+        break
+```
 
 The shared memory itself has the following structure, defined in `common.h`
 
@@ -139,39 +205,28 @@ typedef struct Item {
 } Item;
 ```
 
-To represent the client queue with cashiers we use a custom C struct `Client_CashQ_item`.
+To represent the client and server queues with cashiers we use a custom C struct `Client_Queue_item`.
 
 ```C
-typedef struct Client_CashQ_item {
-    pid_t client_pid;
-    int client_id;
-    int menu_itemId;
-} Client_CashQ_item;
+typedef struct Client_Queue_Item {
+	pid_t client_pid;
+	int menu_item_id;
+} Client_Queue_Item;
 ```
 
-To represent the client queue with the server we use a custom C struct `Client_ServQ_item`.
+And to represent the struct for storing client records, we use another custom C struct `Client_Record_Item`.
 
 ```C
-typedef struct Client_ServQ_item {
-    pid_t client_pid;
-    int client_id;
-    int menu_itemId;
-} Client_ServQ_item;
-```
-
-And to represent the struct for storing client records, we use another custom C struct `Client_record_item`.
-
-```C
-typedef struct Client_record_item {
+typedef struct Client_Record_Item {
     pid_t clien_pid;
     int client_id;
     int menu_itemId;
     char menu_desc[MAX_ITEM_DESC_LEN];
-    int menu_price;
+    float menu_price;
     int eat_time;
     int time_with_cashier;
     int time_with_server;
-} Client_record;
+} Client_Record_Item;
 ```
 
 ### Author
