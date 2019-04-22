@@ -1,8 +1,11 @@
+#!/bin/bash
 ./coordinator -n 10 -p 45 -t 8 &
+sleep 3 # Give enough time for coordinator to start
 ./server -m 0001 &
 ./cashier -s 3 -b 9 -m 0001 &
 ./cashier -s 7 -b 7 -m 0001 &
 ./cashier -s 7 -b 5 -m 0001 &
+sleep 3 # Give enough time for server and casher to start
 
 INSTANCES=1
 for ((i=0; $i<$INSTANCES; ++i))
