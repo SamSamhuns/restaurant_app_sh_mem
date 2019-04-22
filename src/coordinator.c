@@ -203,12 +203,12 @@ int main(int argc, char const *argv[]) {
 				/*Only generate the following statistics if at least one client has arrived */
 				if (cur_client_record_size > 0 ) {
 					/*Average waiting time for all clients after entering diner and leaving it */
-					printf("Average waiting time for all clients after entering the diner toleaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
-					fprintf(f_stats,"Average waiting time for all clients after entering diner and leaving it is %.2fs\n\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num));
+					printf("\nAverage waiting time for all clients after entering the diner toleaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
+					fprintf(f_stats,"Average waiting time for all clients after entering diner and leaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num));
 					/*Printing total number of clients visited and total revenue for the day*/
-					printf("Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is $ %.2f\n", shm_ptr->overall_client_num, total_revenue_generated);
+					printf("Total number of Clients who visited our restaurant is %i.\nAnd the total revenue for the day is $ %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
 					/* Write the statistic to the file*/
-					fprintf(f_stats, "Total number of Clients who visited our restaurant is %i.\nAnd total revenue for the day is $ %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
+					fprintf(f_stats, "Total number of Clients who visited our restaurant is %i.\nAnd the total revenue for the day is $ %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
 
 					printf("The most popular menu items with their respective revenue (Max five items)\n");
 					fprintf(f_stats, "The most popular menu items with their respective revenue (Max five items)\n");
