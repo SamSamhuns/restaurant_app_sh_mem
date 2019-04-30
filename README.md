@@ -32,7 +32,7 @@ $ make clean
 
 ### Notes on each program
 
-**1)  Coordinator**
+#### 1)  Coordinator
 
 When the `coordinator` is invoked with the command below. It creates a shared memory and named semaphores under the POSIX standards, finally printing out the `shmid`. The other participants/processes access this shared memory through the `shmid`.
 
@@ -42,13 +42,11 @@ Note: The `shmid` is defined as global constant `SHMID` in `common.h`
 $ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
 ```
 
--  `MaxNumOfCashiers` is the maximum number of cashiers that can be operating and invoked after the coordinator begins operation for the restaurant app.
+-   `MaxNumOfCashiers` is the maximum number of cashiers that can be operating and invoked after the coordinator begins operation for the restaurant app.
+-   `MaxPeople` is the maximum number of clients that can be present in the restaurant at any given time. If more clients attempt to join, they will simply exit.
+-   `MaxTimeWait` is the maximum time that the restaurant waits before closing the shop given that no new clients have entered and all current clients have left the restaurant.
 
--  `MaxPeople` is the maximum number of clients that can be present in the restaurant at any given time. If more clients attempt to join, they will simply exit.
-
--  `MaxTimeWait` is the maximum time that the restaurant waits before closing the shop given that no new clients have entered and all current clients have left the restaurant.
-
-**2)  Server**
+#### 2)  Server
 
 The `server` needs access to the menu data structure in the shared memory segment with id `shmid` initialized by the `coordinator`.
 
@@ -56,7 +54,7 @@ The `server` needs access to the menu data structure in the shared memory segmen
 $ ./server -m shmid
 ```
 
-**3)   Cashier**
+#### 3)   Cashier
 
 A `cashier` checks the `MaxNumOfCashiers` value in the shared memory (**shm**) with id `shmid` initialized by the `coordinator`. The `cur_n_cashiers`in`shm`must be less than `MaxNumOfCashiers`.
 
@@ -64,18 +62,18 @@ A `cashier` checks the `MaxNumOfCashiers` value in the shared memory (**shm**) w
 $ ./cashier -s serviceTime -b breakTime -m shmid
 ```
 
--  `serviceTime` = maximum service time for dealing with one client
--  `breakTime` = maximum break time when the cashier_client_wait_queue is empty after which cashier returns back to station and goes back into break if there are no clients to serve again.
+-   `serviceTime` = maximum service time for dealing with one client
+-   `breakTime` = maximum break time when the cashier_client_wait_queue is empty after which cashier returns back to station and goes back into break if there are no clients to serve again.
 
-**4)   Client**
+#### 4)   Client
 
 A `client` checks the `MaxPeople` value in the shared memory (**shm**) with id `shmid` initialized by the `coordinator`. The`cur_n_clients_wait_cashier`in`shm`must be less than `MaxPeople`. Otherwise `client` exits the restaurant.
 
 ```shell
 $ ./client -i itemId -e eatTime -m shmid
 ```
--  `itemId` = id of item available in menu inside `db\diner_menu.txt`
--  `eatTime` = maximum eating time of the client
+-   `itemId` = id of item available in menu inside `db\diner_menu.txt`
+-   `eatTime` = maximum eating time of the client
 
 ### Implementation
 
