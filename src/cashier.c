@@ -150,7 +150,7 @@ int main(int argc, char const *argv[]) {
 			if (temp_sleep_time == 0) {     // if the rand created a perfectly divisible num
 				temp_sleep_time = 1;
 			}
-			printf("Server %li currently serving Client %li with serve time %i \n",
+			printf("Cashier %li currently serving Client %li with serve time %i \n",
 			       (long) getpid(),
 			       (long) (shm_ptr->client_record_array[cli_record_index]).client_pid,
 			       temp_sleep_time);
