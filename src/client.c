@@ -135,11 +135,13 @@ int main(int argc, char const *argv[]){
 	/* IMPORTANT have to make the client stop here at this point before proceeding */
 	/* Client waits till cashier has set a serving time for both */
 	int temp_breaker = 1;
+	int index = 0;
 	while (temp_breaker) {
 		for (int i = shm_ptr->front_client_Q; i < shm_ptr->cur_client_record_size; i++) {
-			if ( (shm_ptr->client_record_array[i]).client_pid == getpid() ) {
+			if ( ((shm_ptr->client_record_array)[i]).client_pid == getpid() && (int)(((shm_ptr->client_record_array)[i]).time_with_cashier) > 0 ) {
 				printf("Being served by a cashier right now\n");
 				temp_breaker = 0;
+				index = i;
 				break;
 			}
 		}
@@ -147,15 +149,15 @@ int main(int argc, char const *argv[]){
 	/* client releases the lock on the cashier dequeue sem so cashier
 	    can proceed and server other clients before being served by the cashier and going to sleep */
 	TRY_AND_CATCH_INT(sem_post(deq_c_block_sem), "sem_post()");
-	// TRY_AND_CATCH_INT(sem_post(deq_c_block_sem), "sem_wait()");
-	sleep((shm_ptr->client_record_array[shm_ptr->cur_client_record_size]).time_with_cashier); /* client is being serve by the cashier */
+	// printf("CLIENT WILL WAIT FOR %d seconds\n", (int)(shm_ptr->client_record_array)[index].time_with_cashier);
+	sleep(((shm_ptr->client_record_array)[index]).time_with_cashier); /* client is being serve by the cashier */
 
 
 
 	/////////////////////////////  DEAL WITH SERVER  ///////////////////////////
 	/*enqueue client to the client_server_queue */
 	enqueue_client_server_q(shm_ptr, itemId, shm_write_sem);
-	printf("Heading towards the server\n");
+	printf("Done with Cashier. Heading towards the server queue\n");
 
 	/* Client waits in this loop for the server */
 	while (1) {
