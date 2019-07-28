@@ -43,7 +43,7 @@ clean-obj:
 	rm -rf $(ODIR)
 
 clean-mac-fsys:
-	rm -rf *.DS_Store
+	find . -name ".DS_Store" -delete
 
 clean-build:
 	rm -rf server client coordinator cashier
