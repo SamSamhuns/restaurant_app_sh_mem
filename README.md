@@ -17,12 +17,16 @@ $ make all
 
 Only one `coordinator` and `server` should be invoked. However, multiple number of `cashiers` (Which is under `MaxNumOfCashiers`) and `clients` can be invoked. Each command arguments are discussed in the implementation below.
 
-**Inside the `bin` folder run the following sequencially.**
+Once the binaries are created, run the following scripts in **different terminal sessions**. Note: make sure `MaxTimeWait` is a large number when invoking the coordinator to have enough time to invoke the other participants.
 
 ```shell
+# run in terminal 1
 $ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
+# run in terminal 2
 $ ./server -m shmid
+# run in terminal 3
 $ ./cashier -s serviceTime -b breakTime -m shmid
+# run in terminal 4
 $ ./client -i itemId -e eatTime -m shmid
 ```
 
