@@ -1,6 +1,6 @@
 # A restaurant application with IPC, shared memory and semaphores
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/cbdc0947d96e42d7a174d5e73d39853d)](https://www.codacy.com/app/samhunsadamant/restaurant_app_sh_mem?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=SamSamhuns/restaurant_app_sh_mem&amp;utm_campaign=Badge_Grade)
+[![C Build and Test](https://github.com/SamSamhuns/restaurant_app_sh_mem/actions/workflows/main.yaml/badge.svg)](https://github.com/SamSamhuns/restaurant_app_sh_mem/actions/workflows/main.yaml)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/cbdc0947d96e42d7a174d5e73d39853d)](https://www.codacy.com/app/samhunsadamant/restaurant_app_sh_mem?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=SamSamhuns/restaurant_app_sh_mem&amp;utm_campaign=Badge_Grade)
 
 This application demonstrates the concept of IPC, POSIX shared memory and semaphores. The build is supported in both `linux` and `darwin/OSX` systems.
 
