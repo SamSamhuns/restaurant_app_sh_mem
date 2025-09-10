@@ -1,16 +1,15 @@
 # A restaurant application with IPC, shared memory and semaphores
 
-[![Build Status](https://travis-ci.org/SamSamhuns/restaurant_app_sh_mem.svg?branch=master)](https://travis-ci.org/SamSamhuns/restaurant_app_sh_mem)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/cbdc0947d96e42d7a174d5e73d39853d)](https://www.codacy.com/app/samhunsadamant/restaurant_app_sh_mem?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=SamSamhuns/restaurant_app_sh_mem&amp;utm_campaign=Badge_Grade)
 
 This application demonstrates the concept of IPC, POSIX shared memory and semaphores. The build is supported in both `linux` and `darwin/OSX` systems.
 
-<img src="img/restaurant.png">
+![restaurant](img/restaurant.png)
 
 ## Build
 
 ```shell
-$ make all
+make all
 ```
 
 ## Run
@@ -21,20 +20,21 @@ Once the binaries are created, run the following scripts in **different terminal
 
 ```shell
 # run in terminal 1
-$ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
+./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
 # run in terminal 2
-$ ./server -m shmid
+./server -m shmid
 # run in terminal 3
-$ ./cashier -s serviceTime -b breakTime -m shmid
+./cashier -s serviceTime -b breakTime -m shmid
 # run in terminal 4
-$ ./client -i itemId -e eatTime -m shmid
+./client -i itemId -e eatTime -m shmid
 ```
 
 Data on individual clients and orders are saved in the `db` folder while the summary statistics such as `average waiting time for all customers`, `total visiting clients`, `total revenue` and `top five most popular dishes` are displayed when all clients have been served and the `coordinator` exits and saved in the `stats` folder as well.
 
 ### Clean build artifacts
+
 ```shell
-$ make clean
+make clean
 ```
 
 ### Notes on each program
@@ -46,19 +46,19 @@ When the `coordinator` is invoked with the command below. It creates a shared me
 Note: The `shmid` is defined as global constant `SHMID` in `common.h`
 
 ```shell
-$ ./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
+./coordinator -n MaxNumOfCashiers -p MaxPeople -t MaxTimeWait
 ```
 
--   `MaxNumOfCashiers` is the maximum number of cashiers that can be operating and invoked after the coordinator begins operation for the restaurant app.
--   `MaxPeople` is the maximum number of clients that can be present in the restaurant at any given time. If more clients attempt to join, they will simply exit.
--   `MaxTimeWait` is the maximum time that the restaurant waits before closing the shop given that no new clients have entered and all current clients have left the restaurant.
+- `MaxNumOfCashiers` is the maximum number of cashiers that can be operating and invoked after the coordinator begins operation for the restaurant app.
+- `MaxPeople` is the maximum number of clients that can be present in the restaurant at any given time. If more clients attempt to join, they will simply exit.
+- `MaxTimeWait` is the maximum time that the restaurant waits before closing the shop given that no new clients have entered and all current clients have left the restaurant.
 
 #### 2)  Server
 
 The `server` needs access to the menu data structure in the shared memory segment with id `shmid` initialized by the `coordinator`.
 
 ```shell
-$ ./server -m shmid
+./server -m shmid
 ```
 
 #### 3)   Cashier
@@ -66,7 +66,7 @@ $ ./server -m shmid
 A `cashier` checks the `MaxNumOfCashiers` value in the shared memory (**shm**) with id `shmid` initialized by the `coordinator`. The `cur_n_cashiers`in`shm`must be less than `MaxNumOfCashiers`.
 
 ```shell
-$ ./cashier -s serviceTime -b breakTime -m shmid
+./cashier -s serviceTime -b breakTime -m shmid
 ```
 
 -   `serviceTime` = maximum service time for dealing with one client
@@ -77,10 +77,11 @@ $ ./cashier -s serviceTime -b breakTime -m shmid
 A `client` checks the `MaxPeople` value in the shared memory (**shm**) with id `shmid` initialized by the `coordinator`. The`cur_n_clients_wait_cashier`in`shm`must be less than `MaxPeople`. Otherwise `client` exits the restaurant.
 
 ```shell
-$ ./client -i itemId -e eatTime -m shmid
+./client -i itemId -e eatTime -m shmid
 ```
--   `itemId` = id of item available in menu inside `db\diner_menu.txt`
--   `eatTime` = maximum eating time of the client
+
+- `itemId` = id of item available in menu inside `db\diner_menu.txt`
+- `eatTime` = maximum eating time of the client
 
 ### Implementation
 
@@ -92,7 +93,7 @@ Semaphore Initialized
     CaCiQS = 1 // Cash Cli Que Sem
     DeqC = 0   // Deq Cashier Block Sem
     SeS = 0    // Server Sem
-    SeCiQS = 1 // Serv Cli Que Sem
+    SeCiQS = 1 // Server Cli Que Sem
     DeqS = 0   // Deq Server Block Sem
     ShutS = 0  // Shutdown Sem
     WriteS = 1 // Write lock Sem
@@ -190,7 +191,7 @@ typedef struct Shared_memory_struct {
 
     /* dynamic values */
     pid_t server_pid; // pid of current server program
-    int totalCashierNum; // current number of cashieers
+    int totalCashierNum; // current number of cashiers
     int totalClientNum; // current number of total clients
     int totalClientOverall; // overall number of clients processed must be less than MaxPeople
 } Shared_memory_struct;
@@ -223,21 +224,13 @@ And to represent the struct for storing client records, we use another custom C 
 
 ```C
 typedef struct Client_Record_Item {
-    pid_t clien_pid;
-    int client_id;
-    int menu_itemId;
-    char menu_desc[MAX_ITEM_DESC_LEN];
-    float menu_price;
-    int eat_time;
-    int time_with_cashier;
-    int time_with_server;
+	pid_t client_pid;
+	int menu_item_id;
+	char menu_desc[MAX_ITEM_DESC_LEN];
+	float menu_price;
+	int eat_time;
+	int time_with_cashier;
+	int time_with_server;
+	int total_time_spent;
 } Client_Record_Item;
 ```
-
-### Author
-
--   <a href='https://www.linkedin.com/in/samridha-man-shrestha-89721412a/'>Samridha Shrestha</a>
-
-### Acknowledgments
-
--   Linux man pages

@@ -1,6 +1,3 @@
-/*  Author: Samridha Shrestha
-    2019, April 2
- */
 #include <ctype.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -107,7 +104,7 @@ void all_exit_cleanup(sem_t *cashier_sem,
 	printf("Successfully exiting process with pid %li\n", (long)getpid());
 }
 
-/* Normal exit sempaphore and shm cleanup for cashier and the sems it uses */
+/* Normal exit semaphore and shm cleanup for cashier and the sems it uses */
 void cashier_exit_cleanup(sem_t *cashier_sem,
                           sem_t *cashier_cli_q_sem,
                           sem_t *deq_c_block_sem,
@@ -130,7 +127,7 @@ void cashier_exit_cleanup(sem_t *cashier_sem,
 	printf("Successfully exiting process with pid %li\n", (long)getpid());
 }
 
-/* Normal exit sempaphore and shm cleanup for server and the sems it uses */
+/* Normal exit semaphore and shm cleanup for server and the sems it uses */
 void server_exit_cleanup(sem_t *server_sem,
                          sem_t *server_cli_q_sem,
                          sem_t *deq_s_block_sem,

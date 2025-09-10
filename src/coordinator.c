@@ -47,13 +47,13 @@ int main(int argc, char const *argv[]) {
 
 	/* named semaphores initialization */
 	sem_t *cashier_sem = sem_open(CASHIER_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init cashier_sem semaphore to 1 */
-	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init cashier_cli_q_sem sempaphore to 1 */
+	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init cashier_cli_q_sem semaphore to 1 */
 	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init deq_c_block_sem semaphore to 0 */
-	sem_t *server_sem = sem_open(SERVER_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init server_sem sempaphore to 0 */
+	sem_t *server_sem = sem_open(SERVER_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init server_sem semaphore to 0 */
 	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM, O_CREAT | O_EXCL, 0666, 1); /* Init server_cli_q_sem semaphore to 1 */
-	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM, O_CREAT | O_EXCL, 0666, 0); /* Init deq_s_block_sem sempaphore to 0 */
-	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM, O_CREAT | O_EXCL, 0666, 1);        /* Init shm_write_sem sempaphore to 1 */
-	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM, O_CREAT | O_EXCL, 0666, 0);        /* Init shutdown_sem sempaphore to 0 */
+	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM, O_CREAT | O_EXCL, 0666, 0);	 /* Init deq_s_block_sem semaphore to 0 */
+	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM, O_CREAT | O_EXCL, 0666, 1);		 /* Init shm_write_sem semaphore to 1 */
+	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM, O_CREAT | O_EXCL, 0666, 0);		 /* Init shutdown_sem semaphore to 0 */
 	TRY_AND_CATCH_SEM(cashier_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(cashier_cli_q_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(deq_c_block_sem, "sem_open()");
@@ -203,7 +203,7 @@ int main(int argc, char const *argv[]) {
 				/*Only generate the following statistics if at least one client has arrived */
 				if (cur_client_record_size > 0 ) {
 					/*Average waiting time for all clients after entering diner and leaving it */
-					printf("\nAverage waiting time for all clients after entering the diner toleaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
+					printf("\nAverage waiting time for all clients after entering the diner to leaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num ));
 					fprintf(f_stats,"Average waiting time for all clients after entering diner and leaving it is %.2fs\n",(float)total_waiting_time_for_all_clients/(float)(shm_ptr->overall_client_num));
 					/*Printing total number of clients visited and total revenue for the day*/
 					printf("Total number of Clients who visited our restaurant is %i.\nAnd the total revenue for the day is $ %.2f\n\n", shm_ptr->overall_client_num, total_revenue_generated);
@@ -296,7 +296,7 @@ int cmd_validate(int argc, char const *argv[], long *MaxCashiers, long *MaxPeopl
 	}
 	if (*MaxPeople > MAX_REST_QUEUE_CAP) {
 		fprintf(stderr,
-		        "Max number of people servicable (%li) cannot exceed global Maximum (%d)\n", *MaxPeople, MAX_REST_QUEUE_CAP);
+		        "Max number of people serviceable (%li) cannot exceed global Maximum (%d)\n", *MaxPeople, MAX_REST_QUEUE_CAP);
 		fprintf(stderr, "Change Global max in common.h\n");
 		exit(1);
 	}

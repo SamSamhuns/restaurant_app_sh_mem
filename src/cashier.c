@@ -164,7 +164,7 @@ int main(int argc, char const *argv[]) {
 			TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");
 
 			////////////////////////////////////////////////////////////////////////////
-			/* wait on cashier dequeue sem so that client has time to get its serving wait tiem */
+			/* wait on cashier dequeue sem so that client has time to get its serving wait time */
 			TRY_AND_CATCH_INT(sem_wait(deq_c_block_sem), "sem_wait()");					   // wait (DeqC)
 			/*remove the client from the queue after writing its information to the
 			    client client_record_array */

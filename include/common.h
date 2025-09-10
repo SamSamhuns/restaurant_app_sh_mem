@@ -35,7 +35,7 @@
 		} \
 } while (0)
 
-/* For catching sem_open erros */
+/* For catching sem_open errors */
 #define TRY_AND_CATCH_SEM(sem_exp, err_cmd) do { \
 		if (sem_exp == SEM_FAILED) { \
 			perror(err_cmd); \
@@ -107,7 +107,7 @@ typedef struct Shared_memory_struct {
 	int initiate_shutdown; // 1 is all processes should initiate shutdown
 	pid_t cashier_pid_array[MAX_CASHIER_CAP]; // array of pids of cashier processes
 	pid_t server_pid; // pid of current server program
-	int cur_cashier_num; // current number of cashieers
+	int cur_cashier_num; // current number of cashiers
 	int cur_client_num; // current number of total clients
 	int overall_client_num; // overall number of clients processed must be less than MaxPeople
 } Shared_memory_struct;
@@ -142,7 +142,7 @@ void all_exit_cleanup(sem_t *cashier_sem,
                       struct Shared_memory_struct *shm_ptr,
                       int *shm_fd);
 
-/* Normal exit sempaphore and shm cleanup for cashier and the sems it uses */
+/* Normal exit semaphore and shm cleanup for cashier and the sems it uses */
 void cashier_exit_cleanup(sem_t *cashier_sem,
                           sem_t *cashier_cli_q_sem,
                           sem_t *deq_c_block_sem,
@@ -151,7 +151,7 @@ void cashier_exit_cleanup(sem_t *cashier_sem,
                           struct Shared_memory_struct *shm_ptr,
                           int *shm_fd);
 
-/* Normal exit sempaphore and shm cleanup for server and the sems it uses */
+/* Normal exit semaphore and shm cleanup for server and the sems it uses */
 void server_exit_cleanup(sem_t *server_sem,
                          sem_t *server_cli_q_sem,
                          sem_t *deq_s_block_sem,

@@ -128,7 +128,7 @@ int main(int argc, char const *argv[]){
 	TRY_AND_CATCH_INT(sem_wait(cashier_cli_q_sem), "sem_wait()"); 			  //
 	/* Client joins the client_cashier_queue */								  //
 	enqueue_client_cashier_q(shm_ptr, itemId, shm_write_sem);				  //
-	/* signal sempahore after adding itself to the client_cashier_queue *///////
+	/* signal semaphore after adding itself to the client_cashier_queue *///////
 	TRY_AND_CATCH_INT(sem_post(cashier_cli_q_sem), "sem_post()");			  //
 	////////////////////////////////////////////////////////////////////////////
 
@@ -182,7 +182,7 @@ int main(int argc, char const *argv[]){
 
 			/* Check the client_record_array for pid of current client process
 			    after Server has written the allocated serving time to the
-			    time_with_server attrb */
+			    time_with_server attribute */
 			int temp_server_cli_serving_time = 0;
 			for (int i = 0; i < shm_ptr->cur_client_record_size; i++) {
 				if ((shm_ptr->client_record_array[i]).client_pid == getpid() ) {

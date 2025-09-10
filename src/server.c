@@ -110,7 +110,7 @@ int main(int argc, char const *argv[]) {
 		/* write time spent with client on the shared memory segment */
 		/* Check the client_record_array for pid of current client process
 		    to write the allocated serving time to the
-		    time_with_server attrb */
+		    time_with_server attribute */
 		int temp_server_cli_serving_time = 0;
 		for (int i = 0; i < shm_ptr->cur_client_record_size; i++) {
 			if ((shm_ptr->client_record_array[i]).client_pid == (shm_ptr->client_server_queue[shm_ptr->front_server_Q]).client_pid ) {
