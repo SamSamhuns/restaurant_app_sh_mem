@@ -1,0 +1,36 @@
+engines:
+  ruff:
+    enabled: true
+
+exclude_paths:
+  - "tests/**"
+  - "docs/**"
+  - "**/*.md"
+  - "**/*.yml"
+  - "**/*.yaml"
+
+tools:
+  ruff:
+    max-line-length: 100
+    select:
+      - E  # pycodestyle errors
+      - W  # pycodestyle warnings
+      - F  # pyflakes
+      - I  # isort
+      - N  # pep8-naming
+      - B  # bugbear
+      - C4 # comprehensions
+      - SIM # simplify
+    ignore:
+      - E501  # line length handled separately
+      - W503  # line break before binary operator
+
+patterns:
+  security:
+    level: warning
+    categories:
+      - Security
+  style:
+    level: info
+    categories:
+      - Style
