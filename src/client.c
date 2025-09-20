@@ -14,19 +14,21 @@
 #include "common.h"
 
 /* cmd args validation
-    ./client -i itemId -e eatTime -m shmid	*/
+	./client -i itemId -e eatTime -m shmid	*/
 int cmd_validate(int argc, char const *argv[], long *itemId, char *shmid, long *eatTime);
 
-int main(int argc, char const *argv[]){
+int main(int argc, char const *argv[])
+{
 	long itemId, eatTime;
 	char shmid[MAX_SHMID_LEN];
 	srand(time(NULL)); // seed the random number generator
 
 	/* cmd args validation
-	    ./client -i itemId -e eatTime -m shmid	*/
-	if (cmd_validate(argc, argv, &itemId, shmid, &eatTime) == 1) {
+		./client -i itemId -e eatTime -m shmid	*/
+	if (cmd_validate(argc, argv, &itemId, shmid, &eatTime) == 1)
+	{
 		fprintf(stderr,
-		        "Incorrect args supplied. Usage: ./client -i itemId -e eatTime -m shmid\n");
+				"Incorrect args supplied. Usage: ./client -i itemId -e eatTime -m shmid\n");
 		return 1;
 	}
 
@@ -37,7 +39,8 @@ int main(int argc, char const *argv[]){
 	// Create a Item struct array to hold each item from diner menu
 	int num_menu_items_temp = num_menu_items(menu_file);
 	/* Check if client ordered outside the existing menu items */
-	if (itemId > num_menu_items_temp) {
+	if (itemId > num_menu_items_temp)
+	{
 		fprintf(stderr, "Item id(%li) exceeds the number of available items(%i) in menu.\n", itemId, num_menu_items_temp);
 		return 0;
 	}
@@ -46,14 +49,14 @@ int main(int argc, char const *argv[]){
 	fclose(menu_file);
 
 	////////////////* ACCESS THE SHARED MEMORY STRUCTURE *//////////////////////
-	sem_t *cashier_sem = sem_open(CASHIER_SEM, 0); /* open existing server_sem semaphore */
+	sem_t *cashier_sem = sem_open(CASHIER_SEM, 0);			   /* open existing server_sem semaphore */
 	sem_t *cashier_cli_q_sem = sem_open(CASHIER_CLI_Q_SEM, 0); /* open existing server_cli_q_sem semaphore */
-	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM, 0); /* open existing deq_s_block_sem semaphore */
-	sem_t *server_sem = sem_open(SERVER_SEM, 0); /* open existing server_sem semaphore */
-	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM, 0); /* open existing server_cli_q_sem semaphore */
-	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM, 0); /* open existing deq_s_block_sem semaphore */
-	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM, 0); /* open existing server_sem semaphore */
-	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM, 0); /* open existing server_sem semaphore */
+	sem_t *deq_c_block_sem = sem_open(DEQ_C_BLOCK_SEM, 0);	   /* open existing deq_s_block_sem semaphore */
+	sem_t *server_sem = sem_open(SERVER_SEM, 0);			   /* open existing server_sem semaphore */
+	sem_t *server_cli_q_sem = sem_open(SERVER_CLI_Q_SEM, 0);   /* open existing server_cli_q_sem semaphore */
+	sem_t *deq_s_block_sem = sem_open(DEQ_S_BLOCK_SEM, 0);	   /* open existing deq_s_block_sem semaphore */
+	sem_t *shm_write_sem = sem_open(SHM_WRITE_SEM, 0);		   /* open existing server_sem semaphore */
+	sem_t *shutdown_sem = sem_open(SHUTDOWN_SEM, 0);		   /* open existing server_sem semaphore */
 	TRY_AND_CATCH_SEM(cashier_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(cashier_cli_q_sem, "sem_open()");
 	TRY_AND_CATCH_SEM(deq_c_block_sem, "sem_open()");
@@ -73,7 +76,8 @@ int main(int argc, char const *argv[]){
 
 	/* memory map the shared memory object */
 	if ((shm_ptr = mmap(0, sizeof(Shared_memory_struct),
-	                    PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED) {
+						PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0)) == MAP_FAILED)
+	{
 		perror("mmap");
 		exit(1);
 	};
@@ -84,61 +88,68 @@ int main(int argc, char const *argv[]){
 	int client_not_enter_restaurant = 0;
 
 	/* if restaurant is not properly staffed */
-	if (shm_ptr->cur_cashier_num == 0 || shm_ptr->server_pid == NO_SERVER_TEMP_PID) {
+	if (shm_ptr->cur_cashier_num == 0 || shm_ptr->server_pid == NO_SERVER_TEMP_PID)
+	{
 		printf("Client will leave because restaurant is not properly staffed\n");
 		client_not_enter_restaurant = 1;
 	}
 	/* If the current num of clients being served in the restaurant has reached MaxPeople limit */
-	else if (shm_ptr->cur_client_num+1 > shm_ptr->MaxPeople) {
+	else if (shm_ptr->cur_client_num + 1 > shm_ptr->MaxPeople)
+	{
 		printf("Client will not be joining restaurant queue as it is full right now\n");
 		client_not_enter_restaurant = 1;
 	}
 	/* If the overall number of clients has exceeded the MAX_REST_QUEUE_CAP restaurant global capacity */
-	else if (shm_ptr->overall_client_num+1 > MAX_REST_QUEUE_CAP) {
+	else if (shm_ptr->overall_client_num + 1 > MAX_REST_QUEUE_CAP)
+	{
 		printf("Client will leave because restaurant has reached its capacity and will not take any more clients today\n");
 		client_not_enter_restaurant = 1;
 	}
 	/* if shutting down has been initiated by the coordinator */
-	else if (shm_ptr->initiate_shutdown == 1) {
+	else if (shm_ptr->initiate_shutdown == 1)
+	{
 		printf("Client will leave because restaurant is going to shut down now\n");
 		client_not_enter_restaurant = 1;
 	}
 
-
-	if (client_not_enter_restaurant) {
+	if (client_not_enter_restaurant)
+	{
 		/* Client will not enter restaurant so clean up normally and exit */
 		all_exit_cleanup(cashier_sem, cashier_cli_q_sem, deq_c_block_sem, server_sem,
-		                 server_cli_q_sem, deq_s_block_sem, shm_write_sem, shutdown_sem,
-		                 shm_ptr, &shm_fd);
+						 server_cli_q_sem, deq_s_block_sem, shm_write_sem, shutdown_sem,
+						 shm_ptr, &shm_fd);
 		return 0;
 	}
 
 	/* If control reaches here Now we can increment cur_client_num, overall_client_num
-	        and add clients first to the client_cashier_queue */
+			and add clients first to the client_cashier_queue */
 	//////* Acquire semaphore lock first before writing in shared memory *//////
-	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");		          //  // wait(WriteS)
-	shm_ptr->cur_client_num += 1;											  //
-	shm_ptr->overall_client_num += 1;									      //
-	/* release semaphore write lock after writing to shared memory */	 	  //
-	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");                 //  // post(WriteS)
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");		  //  // wait(WriteS)
+	shm_ptr->cur_client_num += 1;									  //
+	shm_ptr->overall_client_num += 1;								  //
+	/* release semaphore write lock after writing to shared memory */ //
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");		  //  // post(WriteS)
 	////////////////////////////////////////////////////////////////////////////
 
 	///* Client locks the cashier_cli_q_sem semaphore by calling wait on it *///
 	////////////////////////////////////////////////////////////////////////////
-	TRY_AND_CATCH_INT(sem_wait(cashier_cli_q_sem), "sem_wait()"); 			  //
-	/* Client joins the client_cashier_queue */								  //
-	enqueue_client_cashier_q(shm_ptr, itemId, shm_write_sem);				  //
-	/* signal semaphore after adding itself to the client_cashier_queue *///////
-	TRY_AND_CATCH_INT(sem_post(cashier_cli_q_sem), "sem_post()");			  //
+	TRY_AND_CATCH_INT(sem_wait(cashier_cli_q_sem), "sem_wait()");		   //
+	/* Client joins the client_cashier_queue */							   //
+	enqueue_client_cashier_q(shm_ptr, itemId, shm_write_sem);			   //
+	/* signal semaphore after adding itself to the client_cashier_queue */ //////
+	TRY_AND_CATCH_INT(sem_post(cashier_cli_q_sem), "sem_post()");		   //
 	////////////////////////////////////////////////////////////////////////////
 
 	/* IMPORTANT have to make the client stop here at this point before proceeding */
 	/* Client waits till cashier has set a serving time for both */
 	int temp_breaker = 1;
 	int index = 0;
-	while (temp_breaker) {
-		for (int i = shm_ptr->front_client_Q; i < shm_ptr->cur_client_record_size; i++) {
-			if ( ((shm_ptr->client_record_array)[i]).client_pid == getpid() && (int)(((shm_ptr->client_record_array)[i]).time_with_cashier) > 0 ) {
+	while (temp_breaker)
+	{
+		for (int i = shm_ptr->front_client_Q; i < shm_ptr->cur_client_record_size; i++)
+		{
+			if (((shm_ptr->client_record_array)[i]).client_pid == getpid() && (int)(((shm_ptr->client_record_array)[i]).time_with_cashier) > 0)
+			{
 				printf("Being served by a cashier right now\n");
 				temp_breaker = 0;
 				index = i;
@@ -147,12 +158,10 @@ int main(int argc, char const *argv[]){
 		}
 	}
 	/* client releases the lock on the cashier dequeue sem so cashier
-	    can proceed and server other clients before being served by the cashier and going to sleep */
+		can proceed and server other clients before being served by the cashier and going to sleep */
 	TRY_AND_CATCH_INT(sem_post(deq_c_block_sem), "sem_post()");
 	// printf("CLIENT WILL WAIT FOR %d seconds\n", (int)(shm_ptr->client_record_array)[index].time_with_cashier);
 	sleep(((shm_ptr->client_record_array)[index]).time_with_cashier); /* client is being serve by the cashier */
-
-
 
 	/////////////////////////////  DEAL WITH SERVER  ///////////////////////////
 	/*enqueue client to the client_server_queue */
@@ -160,35 +169,40 @@ int main(int argc, char const *argv[]){
 	printf("Done with Cashier. Heading towards the server queue\n");
 
 	/* Client waits in this loop for the server */
-	while (1) {
+	while (1)
+	{
 		/* Client waits on the server_cli_q_sem to make sure only one client is
-		    dealing with the server at a time */
-		TRY_AND_CATCH_INT(sem_wait(server_cli_q_sem), "sem_wait()");                                // wait (SeCiQS)
+			dealing with the server at a time */
+		TRY_AND_CATCH_INT(sem_wait(server_cli_q_sem), "sem_wait()"); // wait (SeCiQS)
 
 		/*If pid of current client != ServerQ_head.client_pid) then
-		    current client process is not at the head of the client_server_queue */
-		if ( getpid() != (shm_ptr->client_server_queue[shm_ptr->front_server_Q]).client_pid ) {
+			current client process is not at the head of the client_server_queue */
+		if (getpid() != (shm_ptr->client_server_queue[shm_ptr->front_server_Q]).client_pid)
+		{
 			/* Let other client processes a chance to check pid status with the shm struct */
-			TRY_AND_CATCH_INT(sem_post(server_cli_q_sem), "sem_post()");                            // signal (SeCiQS)
+			TRY_AND_CATCH_INT(sem_post(server_cli_q_sem), "sem_post()"); // signal (SeCiQS)
 		}
 		/* current client process is at the head of the client_server_queue */
-		else {
+		else
+		{
 			/* Unblock the current server process for serving the client */
-			TRY_AND_CATCH_INT(sem_post(server_sem), "sem_post()");                                  // post (SeS)
+			TRY_AND_CATCH_INT(sem_post(server_sem), "sem_post()"); // post (SeS)
 
 			/* Client postpone its dequeue from the client_server_queue until
-			    server has written client's serve time to the client_record_array*/
-			TRY_AND_CATCH_INT(sem_wait(deq_s_block_sem), "sem_wait()");                             // wait (DeqS)
+				server has written client's serve time to the client_record_array*/
+			TRY_AND_CATCH_INT(sem_wait(deq_s_block_sem), "sem_wait()"); // wait (DeqS)
 
 			/* Check the client_record_array for pid of current client process
-			    after Server has written the allocated serving time to the
-			    time_with_server attribute */
+				after Server has written the allocated serving time to the
+				time_with_server attribute */
 			int temp_server_cli_serving_time = 0;
-			for (int i = 0; i < shm_ptr->cur_client_record_size; i++) {
-				if ((shm_ptr->client_record_array[i]).client_pid == getpid() ) {
+			for (int i = 0; i < shm_ptr->cur_client_record_size; i++)
+			{
+				if ((shm_ptr->client_record_array[i]).client_pid == getpid())
+				{
 					temp_server_cli_serving_time = (shm_ptr->client_record_array[i]).time_with_server;
 					printf("Client %li's food %s is currently being prepared by the Server and will take %i s\n",
-					       (long)getpid(), (shm_ptr->client_record_array[i]).menu_desc, temp_server_cli_serving_time);
+						   (long)getpid(), (shm_ptr->client_record_array[i]).menu_desc, temp_server_cli_serving_time);
 					break;
 				}
 			}
@@ -198,22 +212,24 @@ int main(int argc, char const *argv[]){
 			/* Client dequeues from the client_server_queue */
 			dequeue_client_server_q(shm_ptr, shm_write_sem);
 			/* Give other clients chance to run with the server */
-			TRY_AND_CATCH_INT(sem_post(server_cli_q_sem), "sem_post()");                            // signal (SeCiQS)
+			TRY_AND_CATCH_INT(sem_post(server_cli_q_sem), "sem_post()"); // signal (SeCiQS)
 			break;
 		}
 	}
 	/////////////////////////////  DONE WITH SERVER  ///////////////////////////
 
-
 	/* Eat at the restaurant for a time in the interval [1...eatTime]*/
-	int temp_sleep_time = rand() % (((int)eatTime)+1);
-	if (temp_sleep_time == 0) { // if the rand created a perfectly divisible num
+	int temp_sleep_time = rand() % (((int)eatTime) + 1);
+	if (temp_sleep_time == 0)
+	{ // if the rand created a perfectly divisible num
 		temp_sleep_time = 1;
 	}
-	printf("Client %li is eating for %i s before leaving\n", (long)getpid(), temp_sleep_time );
+	printf("Client %li is eating for %i s before leaving\n", (long)getpid(), temp_sleep_time);
 	/* setting the eat time for the client */
-	for (int i = 0; i < shm_ptr->cur_client_record_size; i++) {
-		if ( (shm_ptr->client_record_array[i]).client_pid == getpid() ) {
+	for (int i = 0; i < shm_ptr->cur_client_record_size; i++)
+	{
+		if ((shm_ptr->client_record_array[i]).client_pid == getpid())
+		{
 			(shm_ptr->client_record_array[i]).eat_time = temp_sleep_time;
 			break;
 		}
@@ -223,57 +239,68 @@ int main(int argc, char const *argv[]){
 
 	/* Decrement the cur_client_num counter before leaving */
 	////////* Acquire semaphore lock first before writing in shared memory *//////
-	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");					//
-	shm_ptr->cur_client_num -= 1;												//
-	/* release semaphore write lock after writing to shared memory */			//
-	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");					//
+	TRY_AND_CATCH_INT(sem_wait(shm_write_sem), "sem_wait()");		  //
+	shm_ptr->cur_client_num -= 1;									  //
+	/* release semaphore write lock after writing to shared memory */ //
+	TRY_AND_CATCH_INT(sem_post(shm_write_sem), "sem_post()");		  //
 	//////////////////////////////////////////////////////////////////////////////
 	/* No clients are present in the restaurant as of now */
-	if (shm_ptr->cur_client_num == 0) {
+	if (shm_ptr->cur_client_num == 0)
+	{
 		TRY_AND_CATCH_INT(sem_post(shutdown_sem), "sem_post()");
 	}
 	printf("Client with ID %i has successfully ordered, dined and left the restaurant\n", getpid());
 	/* Clean up normally */
 	all_exit_cleanup(cashier_sem, cashier_cli_q_sem, deq_c_block_sem, server_sem,
-	                 server_cli_q_sem, deq_s_block_sem, shm_write_sem, shutdown_sem,
-	                 shm_ptr, &shm_fd);
+					 server_cli_q_sem, deq_s_block_sem, shm_write_sem, shutdown_sem,
+					 shm_ptr, &shm_fd);
 	return 0;
 }
 
 /* function for validating the cmd line args input */
-int cmd_validate(int argc, char const *argv[], long *itemId, char *shmid, long *eatTime) {
+int cmd_validate(int argc, char const *argv[], long *itemId, char *shmid, long *eatTime)
+{
 	int itemId_found = 0;
 	int shmid_found = 0;
 	int eatTime_found = 0;
 
-	if ( argc != 7 ) {
+	if (argc != 7)
+	{
 		return 1;
 	}
 
-	for (int i = 1; i < argc-1; i++) {
-		if (strcmp(argv[i], "-i") == 0) {
-			if (isdigit_all(argv[i+1], strlen(argv[i+1]))) {
+	for (int i = 1; i < argc - 1; i++)
+	{
+		if (strcmp(argv[i], "-i") == 0)
+		{
+			if (isdigit_all(argv[i + 1], strlen(argv[i + 1])))
+			{
 				return 1;
 			}
 			itemId_found += 1;
-			*itemId = strtol(argv[i+1], NULL, 10);
+			*itemId = strtol(argv[i + 1], NULL, 10);
 		}
-		else if (strcmp(argv[i], "-e") == 0) {
-			if (isdigit_all(argv[i+1], strlen(argv[i+1]))) {
+		else if (strcmp(argv[i], "-e") == 0)
+		{
+			if (isdigit_all(argv[i + 1], strlen(argv[i + 1])))
+			{
 				return 1;
 			}
 			eatTime_found += 1;
-			*eatTime = strtol(argv[i+1], NULL, 10);
+			*eatTime = strtol(argv[i + 1], NULL, 10);
 		}
-		else if (strcmp(argv[i], "-m") == 0) {
-			if (isdigit_all(argv[i+1], strlen(argv[i+1]))) {
+		else if (strcmp(argv[i], "-m") == 0)
+		{
+			if (isdigit_all(argv[i + 1], strlen(argv[i + 1])))
+			{
 				return 1;
 			}
 			shmid_found += 1;
-			strcpy(shmid, argv[i+1]);
+			strcpy(shmid, argv[i + 1]);
 		}
 	}
-	if (itemId_found == 1 && shmid_found == 1 && eatTime_found == 1) {
+	if (itemId_found == 1 && shmid_found == 1 && eatTime_found == 1)
+	{
 		return 0;
 	}
 	return 1; // if the correct args were not found
